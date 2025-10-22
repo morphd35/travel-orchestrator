@@ -185,6 +185,15 @@ export default function Home() {
                   <input
                     type="date"
                     name="startDate"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      // If end date is before or equal to new start date, clear it
+                      if (endDate && new Date(endDate) <= new Date(e.target.value)) {
+                        setEndDate('');
+                      }
+                    }}
+                    min={today}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     required
                   />
@@ -197,9 +206,16 @@ export default function Home() {
                   <input
                     type="date"
                     name="endDate"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    min={minEndDate}
+                    disabled={!startDate}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     required
                   />
+                  {!startDate && (
+                    <p className="text-xs text-slate-500 mt-1">Select departure date first</p>
+                  )}
                 </div>
               </div>
 
