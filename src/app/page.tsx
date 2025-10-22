@@ -68,14 +68,30 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      
       if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Server error (${res.status}): ${errorText || 'Please try again later'}`);
+        // Handle specific error codes
+        if (res.status === 502 || res.status === 503) {
+          throw new Error('Service temporarily unavailable. Please try again in a moment.');
+        } else if (res.status === 504) {
+          throw new Error('Request timed out. Please try again.');
+        } else {
+          const errorText = await res.text().catch(() => '');
+          throw new Error(`Error (${res.status}): ${errorText || 'Unable to complete search'}`);
+        }
       }
+      
       const json = await res.json();
       setResults(json.results || []);
     } catch (e: any) {
-      setError(e.message || 'Unable to search. Please check your connection and try again.');
+      // Provide user-friendly error messages
+      if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+        setError('Network connection issue. Please check your internet and try again.');
+      } else if (e.message.includes('502') || e.message.includes('503')) {
+        setError('Service temporarily unavailable. Please refresh and try again.');
+      } else {
+        setError(e.message || 'Unable to search. Please try again.');
+      }
       console.error('Search error:', e);
     } finally {
       setLoading(false);
