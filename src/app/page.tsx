@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiPath } from '@/lib/apiBase';
 
 type SearchReq = {
   origin: string;
