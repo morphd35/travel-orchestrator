@@ -2,8 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base: readable on light backgrounds */
 @layer base {
+  * {
+    @apply border-slate-200;
+  }
+  
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -11,60 +14,56 @@
   }
 
   body {
-    @apply bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-gray-900;
+    @apply bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-slate-900;
   }
 
-  h1,
-  h2,
-  h3 {
-    @apply text-gray-900;
-  }
-
-  label span {
-    @apply text-sm font-medium text-gray-700;
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-slate-900;
   }
 
   /* Custom scrollbar */
   ::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-gray-100;
+    @apply bg-slate-100;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-full;
+    @apply bg-slate-300 rounded-full;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400;
+    @apply bg-slate-400;
   }
 }
 
-/* Lightweight component primitives */
 @layer components {
   .card {
-    @apply bg-white border border-slate-200 rounded-2xl p-4 shadow-sm;
+    @apply bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow;
   }
 
-  .input {
-    @apply w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-slate-400;
-  }
-
-  .checkbox {
-    @apply h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-2 focus:ring-slate-400;
+  .input-field {
+    @apply w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all;
   }
 
   .btn {
-    @apply inline-flex items-center justify-center rounded-lg px-3 py-2 border border-slate-300 text-slate-900 shadow-sm hover:bg-slate-100 active:bg-slate-200;
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-xl font-semibold transition-all duration-200;
   }
 
   .btn-primary {
-    @apply bg-slate-900 text-white border-slate-900 hover:bg-slate-800 active:bg-slate-900;
+    @apply bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 active:scale-95;
   }
 
-  .muted {
-    @apply text-slate-600;
+  .btn-secondary {
+    @apply bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
   }
 }
