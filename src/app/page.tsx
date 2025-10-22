@@ -29,6 +29,14 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<PackageResult[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  // Get today's date in YYYY-MM-DD format
+  const today = new Date().toISOString().split('T')[0];
+
+  // Calculate minimum end date (day after start date)
+  const minEndDate = startDate ? new Date(new Date(startDate).getTime() + 86400000).toISOString().split('T')[0] : today;
 
   async function onSubmit(formData: FormData) {
     setError(null);
@@ -47,17 +55,28 @@ export default function Home() {
       budgetUsd: formData.get('budgetUsd') ? Number(formData.get('budgetUsd')) : undefined,
     };
 
+    // Validate dates
+    if (new Date(payload.startDate) >= new Date(payload.endDate)) {
+      setError('Return date must be after departure date');
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/offers/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Server error (${res.status}): ${errorText || 'Please try again later'}`);
+      }
       const json = await res.json();
       setResults(json.results || []);
     } catch (e: any) {
-      setError(e.message || 'Something went wrong');
+      setError(e.message || 'Unable to search. Please check your connection and try again.');
+      console.error('Search error:', e);
     } finally {
       setLoading(false);
     }
