@@ -2,68 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  * {
-    @apply border-slate-200;
-  }
-  
-  html {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    scroll-behavior: smooth;
-  }
-
-  body {
-    @apply bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-slate-900;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    @apply text-slate-900;
-  }
-
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    @apply bg-slate-100;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 rounded-full;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-400;
-  }
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
 }
 
-@layer components {
-  .card {
-    @apply bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow;
-  }
-
-  .input-field {
-    @apply w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all;
-  }
-
-  .btn {
-    @apply inline-flex items-center justify-center px-6 py-3 rounded-xl font-semibold transition-all duration-200;
-  }
-
-  .btn-primary {
-    @apply bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-indigo-700 active:scale-95;
-  }
-
-  .btn-secondary {
-    @apply bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300;
-  }
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+::-webkit-scrollbar-track {
+  background-color: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
 }
