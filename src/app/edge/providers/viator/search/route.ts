@@ -45,22 +45,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Build search payload for Viator
+    // Viator uses destination IDs or location search
     const searchPayload = {
-      filtering: {
-        destination,
-        ...(startDate && endDate && {
-          startDate,
-          endDate,
-        }),
-      },
-      sorting: {
-        sort: 'TRAVELER_RATING',
-        order: 'DESCENDING',
-      },
-      pagination: {
-        start: 1,
-        count: limit + 10, // Request extras to filter for top-rated
-      },
+      searchTypes: ['PRODUCT'],
+      text: destination, // Free text search by city name
+      ...(startDate && endDate && {
+        startDate,
+        endDate,
+      }),
+      sortOrder: 'TRAVELER_RATING',
+      topX: '1-' + limit,
       currency: 'USD',
     };
 
