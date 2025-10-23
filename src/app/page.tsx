@@ -167,6 +167,33 @@ export default function Home() {
         };
       });
 
+      // Fetch activities if requested
+      if (payload.includeActivities && flights.length > 0) {
+        try {
+          const activitiesRes = await fetch(apiPath('/api/providers/viator/search'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              destination: getCityFromIATA(normalizedDestination),
+              startDate: payload.startDate,
+              endDate: payload.endDate,
+              limit: 3,
+            }),
+          });
+
+          if (activitiesRes.ok) {
+            const activitiesData = await activitiesRes.json();
+            // Store activities separately or attach to packages
+            if (activitiesData.activities && activitiesData.activities.length > 0) {
+              console.log('Activities found:', activitiesData.activities.length);
+            }
+          }
+        } catch (activityError) {
+          console.warn('Failed to fetch activities:', activityError);
+          // Don't fail the whole search if activities fail
+        }
+      }
+
       setResults(packages);
     } catch (e: any) {
       // Provide user-friendly error messages
