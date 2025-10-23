@@ -595,10 +595,18 @@ export default function Home() {
                           
                           const cityName = getCityFromIATA(destinationIATA);
                           
-                          // Additional validation - ensure city name is not empty
+                          // Additional validation - ensure city name is not empty and not an IATA code
                           if (!cityName || cityName.trim().length === 0) {
-                            console.error('❌ Booking.com error: city name is empty for IATA:', destinationIATA);
-                            return null;
+                            console.error(`❌ Booking.com error: No city mapping found for IATA code "${destinationIATA}". Please add this airport to IATA_TO_CITY mapping in /app/src/lib/iataCity.ts`);
+                            console.error(`ℹ️ You can still view flights, but hotel search is unavailable for this destination.`);
+                            return (
+                              <div className="flex-1 bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg cursor-not-allowed opacity-60 flex items-center justify-center gap-2" title={`Hotel search unavailable: "${destinationIATA}" not mapped to a city name`}>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                </svg>
+                                <span>Hotels Unavailable</span>
+                              </div>
+                            );
                           }
                           
                           const bookingUrl = bookingCityDeeplink(cityName, searchParams.startDate, searchParams.endDate);
