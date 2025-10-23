@@ -50,6 +50,7 @@ export default function Home() {
     setError(null);
     setLoading(true);
     setResults([]);
+    setActivities([]); // Clear previous activities
 
     const payload: SearchReq = {
       origin: originIATA.toUpperCase() || (formData.get('origin') as string || '').toUpperCase(),
