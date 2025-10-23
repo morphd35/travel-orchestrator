@@ -569,35 +569,53 @@ export default function Home() {
                     {/* Action Buttons */}
                     <div className="flex flex-col sm:flex-row gap-3">
                       {r.components.hotel && searchParams && (() => {
-                        const destinationIATA = searchParams.destination;
-                        const cityName = getCityFromIATA(destinationIATA);
-                        const bookingUrl = bookingCityDeeplink(cityName, searchParams.startDate, searchParams.endDate);
-                        
-                        // Debug logging
-                        if (index === 0) {
-                          console.log('🏨 Booking.com Debug:', {
+                        try {
+                          const destinationIATA = searchParams.destination;
+                          
+                          // Validate destination IATA code
+                          if (!destinationIATA || destinationIATA.trim().length === 0) {
+                            console.error('❌ Booking.com error: destination IATA is empty');
+                            return null;
+                          }
+                          
+                          const cityName = getCityFromIATA(destinationIATA);
+                          
+                          // Additional validation - ensure city name is not empty
+                          if (!cityName || cityName.trim().length === 0) {
+                            console.error('❌ Booking.com error: city name is empty for IATA:', destinationIATA);
+                            return null;
+                          }
+                          
+                          const bookingUrl = bookingCityDeeplink(cityName, searchParams.startDate, searchParams.endDate);
+                          
+                          // Debug logging - show for all results during testing
+                          console.log('🏨 Booking.com Generated:', {
                             destinationIATA,
                             cityName,
-                            cityNameLength: cityName.length,
+                            checkin: searchParams.startDate,
+                            checkout: searchParams.endDate,
                             url: bookingUrl,
-                            urlContainsSS: bookingUrl.includes('ss='),
-                            ssValue: new URLSearchParams(bookingUrl.split('?')[1]).get('ss')
+                            ssParam: new URLSearchParams(bookingUrl.split('?')[1]).get('ss')
                           });
+                          
+                          return (
+                            <a
+                              href={bookingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                              title={`Search hotels in ${cityName}`}
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                              </svg>
+                              <span>View Stays in {cityName}</span>
+                            </a>
+                          );
+                        } catch (error) {
+                          console.error('❌ Error generating Booking.com URL:', error);
+                          return null;
                         }
-                        
-                        return (
-                          <a
-                            href={bookingUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                            </svg>
-                            <span>View Stays</span>
-                          </a>
-                        );
                       })()}
                       <button className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
