@@ -38,6 +38,7 @@ export default function Home() {
   const [searchParams, setSearchParams] = useState<SearchReq | null>(null);
   const [originIATA, setOriginIATA] = useState('');
   const [destinationIATA, setDestinationIATA] = useState('');
+  const [activities, setActivities] = useState<any[]>([]);
 
   // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().split('T')[0];
