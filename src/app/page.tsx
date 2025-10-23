@@ -51,8 +51,8 @@ export default function Home() {
     setResults([]);
 
     const payload: SearchReq = {
-      origin: (formData.get('origin') as string || '').toUpperCase(),
-      destination: (formData.get('destination') as string || '').toUpperCase(),
+      origin: originIATA.toUpperCase() || (formData.get('origin') as string || '').toUpperCase(),
+      destination: destinationIATA.toUpperCase() || (formData.get('destination') as string || '').toUpperCase(),
       startDate: formData.get('startDate') as string,
       endDate: formData.get('endDate') as string,
       flexibilityDays: Number(formData.get('flexibilityDays') || 0),
