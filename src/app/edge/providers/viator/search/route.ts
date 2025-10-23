@@ -44,30 +44,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Build search payload for Viator
-    // Viator uses destination IDs or location search
-    const searchPayload = {
-      searchTypes: ['PRODUCT'],
-      text: destination, // Free text search by city name
-      ...(startDate && endDate && {
-        startDate,
-        endDate,
-      }),
-      sortOrder: 'TRAVELER_RATING',
-      topX: '1-' + limit,
+    // Call Viator Product Search API using free-text search
+    // Build query parameters
+    const params = new URLSearchParams({
+      searchTerm: destination,
+      topX: `1-${limit + 5}`, // Get extra to filter
+      sortOrder: 'REVIEW_AVG_RATING_D', // Descending rating
       currency: 'USD',
-    };
+    });
 
-    // Call Viator Product Search API
-    const response = await fetch(`${VIATOR_BASE_URL}/products/search`, {
-      method: 'POST',
+    const response = await fetch(`${VIATOR_BASE_URL}/v1/search/freetext?${params.toString()}`, {
+      method: 'GET',
       headers: {
         'exp-api-key': VIATOR_API_KEY,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json;version=2.0',
+        'Accept': 'application/json',
         'Accept-Language': 'en-US',
       },
-      body: JSON.stringify(searchPayload),
     });
 
     if (!response.ok) {
