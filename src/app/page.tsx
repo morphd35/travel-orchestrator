@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { apiPath } from '@/lib/apiBase';
-import { getCityFromIATA } from '@/lib/iataCity';
+import { getCityFromIATA, normalizeToIATA } from '@/lib/iataCity';
 import { bookingCityDeeplink } from '@/lib/booking';
 
 type SearchReq = {
