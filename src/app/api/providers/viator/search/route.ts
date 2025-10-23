@@ -44,36 +44,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Build search payload for Viator
-    const searchPayload = {
-      filtering: {
-        destination,
-        ...(startDate && endDate && {
-          startDate,
-          endDate,
-        }),
-      },
-      sorting: {
-        sort: 'TRAVELER_RATING',
-        order: 'DESCENDING',
-      },
-      pagination: {
-        start: 1,
-        count: limit + 10, // Request extras to filter for top-rated
-      },
+    // Call Viator Product Search API using free-text search
+    // Build query parameters
+    const params = new URLSearchParams({
+      searchTerm: destination,
+      topX: `1-${limit + 5}`, // Get extra to filter
+      sortOrder: 'REVIEW_AVG_RATING_D', // Descending rating
       currency: 'USD',
-    };
+    });
 
-    // Call Viator Product Search API
-    const response = await fetch(`${VIATOR_BASE_URL}/products/search`, {
-      method: 'POST',
+    const response = await fetch(`${VIATOR_BASE_URL}/v1/search/freetext?${params.toString()}`, {
+      method: 'GET',
       headers: {
         'exp-api-key': VIATOR_API_KEY,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json;version=2.0',
+        'Accept': 'application/json',
         'Accept-Language': 'en-US',
       },
-      body: JSON.stringify(searchPayload),
     });
 
     if (!response.ok) {
@@ -90,29 +76,26 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
-    const products = data.products || [];
+    const products = data.data || [];
 
     // Parse and filter top-rated activities
     const activities: Activity[] = products
       .filter((p: any) => {
         // Filter for high-rated activities (4+ stars)
-        const rating = p.reviews?.combinedAverageRating || 0;
+        const rating = p.rating || 0;
         return rating >= 4.0;
       })
       .slice(0, limit)
       .map((product: any) => {
-        const pricing = product.pricing?.summary || {};
-        const reviews = product.reviews || {};
-        
         return {
           title: product.title || 'Untitled Activity',
-          fromPrice: pricing.fromPrice || 0,
-          currency: product.pricing?.currency || 'USD',
-          url: constructBookingUrl(product.productUrl || '', product.productCode || ''),
-          description: product.description || '',
-          imageUrl: product.images?.[0]?.variants?.[0]?.url || product.primaryImage || '',
-          rating: reviews.combinedAverageRating || 0,
-          reviewCount: reviews.totalReviews || 0,
+          fromPrice: product.price || 0,
+          currency: product.currencyCode || 'USD',
+          url: constructBookingUrl(product.productUrlName || '', product.code || ''),
+          description: product.shortDescription || product.description || '',
+          imageUrl: product.thumbnailHiResURL || product.thumbnailURL || '',
+          rating: product.rating || 0,
+          reviewCount: product.reviewCount || 0,
         };
       });
 
@@ -138,13 +121,17 @@ export async function POST(req: NextRequest) {
 /**
  * Construct partner-tracked booking URL
  */
-function constructBookingUrl(baseUrl: string, productCode: string): string {
-  if (!baseUrl) {
-    return `https://www.viator.com/tours/${productCode}`;
+function constructBookingUrl(productUrlName: string, productCode: string): string {
+  if (!productUrlName && !productCode) {
+    return 'https://www.viator.com';
   }
   
-  // Add partner tracking parameters if needed
-  // Format: ?medium=api
+  // Construct Viator URL with product URL name or code
+  const baseUrl = productUrlName 
+    ? `https://www.viator.com/${productUrlName}`
+    : `https://www.viator.com/tours/${productCode}`;
+  
+  // Add partner tracking parameters
   const separator = baseUrl.includes('?') ? '&' : '?';
-  return `${baseUrl}${separator}medium=api`;
+  return `${baseUrl}${separator}pid=P00103649&medium=api`;
 }
