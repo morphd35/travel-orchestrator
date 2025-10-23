@@ -257,8 +257,9 @@ export default function Home() {
                     <input
                       name="origin"
                       type="text"
-                      placeholder="DFW, LAX, JFK..."
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      placeholder="LAX, JFK, SFO..."
+                      maxLength={3}
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all uppercase"
                       required
                     />
                   </div>
