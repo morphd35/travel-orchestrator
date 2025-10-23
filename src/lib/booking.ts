@@ -1,16 +1,14 @@
 /**
  * Generate Booking.com affiliate deeplink for hotel searches
- * This runs client-side only to avoid hydration issues
+ * Uses NEXT_PUBLIC_ env var - safe for client-side
  */
 export function bookingCityDeeplink(
   city: string,
   checkin: string,
   checkout: string
 ): string {
-  // Only access env vars on client side
-  const aid = typeof window !== 'undefined' 
-    ? (window as any).__NEXT_PUBLIC_BOOKING_AID || '1234567'
-    : '1234567';
+  // Safe to access NEXT_PUBLIC_ vars on client
+  const aid = process.env.NEXT_PUBLIC_BOOKING_AID || '1234567';
   
   const params = new URLSearchParams({
     aid,
@@ -23,9 +21,4 @@ export function bookingCityDeeplink(
   });
   
   return `https://www.booking.com/searchresults.html?${params.toString()}`;
-}
-
-// Set the booking AID on window for client-side access
-if (typeof window !== 'undefined') {
-  (window as any).__NEXT_PUBLIC_BOOKING_AID = process.env.NEXT_PUBLIC_BOOKING_AID || '1234567';
 }
