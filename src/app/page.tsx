@@ -603,15 +603,17 @@ export default function Home() {
                           
                           const bookingUrl = bookingCityDeeplink(cityName, searchParams.startDate, searchParams.endDate);
                           
-                          // Debug logging - show for all results during testing
-                          console.log('🏨 Booking.com Generated:', {
-                            destinationIATA,
-                            cityName,
-                            checkin: searchParams.startDate,
-                            checkout: searchParams.endDate,
-                            url: bookingUrl,
-                            ssParam: new URLSearchParams(bookingUrl.split('?')[1]).get('ss')
-                          });
+                          // Debug logging - only log for first result to avoid spam
+                          if (index === 0) {
+                            console.log('🏨 Booking.com Generated:', {
+                              destinationIATA,
+                              cityName,
+                              checkin: searchParams.startDate,
+                              checkout: searchParams.endDate,
+                              url: bookingUrl,
+                              ssParam: new URLSearchParams(bookingUrl.split('?')[1]).get('ss')
+                            });
+                          }
                           
                           return (
                             <a
