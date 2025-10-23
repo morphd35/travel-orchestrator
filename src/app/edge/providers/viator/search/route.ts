@@ -44,12 +44,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Call Viator Product Search API using free-text search
-    // Build query parameters
+    // For now, return mock activities for popular destinations
+    // TODO: Replace with real Viator API once access is properly configured
+    const mockActivities = getMockActivities(destination, limit);
+    
+    if (mockActivities.length > 0) {
+      return NextResponse.json({
+        activities: mockActivities,
+        totalCount: mockActivities.length,
+        message: 'Showing popular activities (Demo mode - Real Viator integration pending API access)',
+      });
+    }
+
+    // If not a known destination, return coming soon message
+    return NextResponse.json(
+      { 
+        activities: [],
+        message: 'Activities coming soon for this destination'
+      },
+      { status: 200 }
+    );
+
+    /* Real Viator API code - Enable once API access is working
     const params = new URLSearchParams({
       searchTerm: destination,
-      topX: `1-${limit + 5}`, // Get extra to filter
-      sortOrder: 'REVIEW_AVG_RATING_D', // Descending rating
+      topX: `1-${limit + 5}`,
+      sortOrder: 'REVIEW_AVG_RATING_D',
       currency: 'USD',
     });
 
@@ -77,6 +97,9 @@ export async function POST(req: NextRequest) {
 
     const data = await response.json();
     const products = data.data || [];
+    */
+
+    const products: any[] = [];
 
     // Parse and filter top-rated activities
     const activities: Activity[] = products
