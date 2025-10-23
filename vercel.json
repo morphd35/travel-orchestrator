@@ -1,0 +1,10 @@
+{
+    "buildCommand": "npm run build",
+    "outputDirectory": ".next",
+    "framework": "nextjs",
+    "installCommand": "npm install",
+    "env": {
+        "AMADEUS_API_KEY": "@amadeus-api-key",
+        "AMADEUS_API_SECRET": "@amadeus-api-secret"
+    }
+}

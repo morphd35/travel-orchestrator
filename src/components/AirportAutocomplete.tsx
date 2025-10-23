@@ -31,7 +31,7 @@ export default function AirportAutocomplete({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setInputValue(query);
-    
+
     // Search airports
     if (query.length >= 2) {
       const results = searchAirports(query);
@@ -42,7 +42,7 @@ export default function AirportAutocomplete({
       setSuggestions([]);
       setShowDropdown(false);
     }
-    
+
     // Update parent with IATA code if it's a valid 3-letter code
     if (query.length === 3) {
       onChange(query.toUpperCase(), query);
@@ -66,7 +66,7 @@ export default function AirportAutocomplete({
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedIndex(prev => 
+        setSelectedIndex(prev =>
           prev < suggestions.length - 1 ? prev + 1 : prev
         );
         break;
@@ -78,6 +78,9 @@ export default function AirportAutocomplete({
         e.preventDefault();
         if (selectedIndex >= 0) {
           selectAirport(suggestions[selectedIndex]);
+        } else if (suggestions.length > 0) {
+          // Auto-select first suggestion if no specific selection
+          selectAirport(suggestions[0]);
         }
         break;
       case 'Escape':
@@ -142,11 +145,9 @@ export default function AirportAutocomplete({
               key={airport.iata}
               type="button"
               onClick={() => selectAirport(airport)}
-              className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors ${
-                index === selectedIndex ? 'bg-blue-100' : ''
-              } ${index === 0 ? 'rounded-t-xl' : ''} ${
-                index === suggestions.length - 1 ? 'rounded-b-xl' : ''
-              }`}
+              className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors ${index === selectedIndex ? 'bg-blue-100' : ''
+                } ${index === 0 ? 'rounded-t-xl' : ''} ${index === suggestions.length - 1 ? 'rounded-b-xl' : ''
+                }`}
             >
               <div className="flex items-center justify-between">
                 <div>
