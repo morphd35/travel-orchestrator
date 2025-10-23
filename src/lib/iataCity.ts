@@ -1,0 +1,122 @@
+/**
+ * Map IATA airport codes to city names for Booking.com searches
+ */
+export const IATA_TO_CITY: Record<string, string> = {
+  // United States - Major Cities
+  'LAX': 'Los Angeles',
+  'JFK': 'New York',
+  'LGA': 'New York',
+  'EWR': 'Newark',
+  'SFO': 'San Francisco',
+  'ORD': 'Chicago',
+  'MIA': 'Miami',
+  'DFW': 'Dallas',
+  'SEA': 'Seattle',
+  'BOS': 'Boston',
+  'ATL': 'Atlanta',
+  'DEN': 'Denver',
+  'LAS': 'Las Vegas',
+  'PHX': 'Phoenix',
+  'IAH': 'Houston',
+  'MCO': 'Orlando',
+  'SAN': 'San Diego',
+  'PDX': 'Portland',
+  'MSP': 'Minneapolis',
+  'DTW': 'Detroit',
+  'PHL': 'Philadelphia',
+  'CLT': 'Charlotte',
+  'BWI': 'Baltimore',
+  'DCA': 'Washington DC',
+  'IAD': 'Washington DC',
+  
+  // Mexico
+  'CUN': 'Cancun',
+  'SJD': 'Cabo San Lucas',
+  'PVR': 'Puerto Vallarta',
+  'MEX': 'Mexico City',
+  'GDL': 'Guadalajara',
+  'MTY': 'Monterrey',
+  'TIJ': 'Tijuana',
+  'ZIH': 'Zihuatanejo',
+  'MZT': 'Mazatlan',
+  
+  // Europe - Major Cities
+  'LHR': 'London',
+  'LGW': 'London',
+  'CDG': 'Paris',
+  'ORY': 'Paris',
+  'FCO': 'Rome',
+  'MAD': 'Madrid',
+  'BCN': 'Barcelona',
+  'AMS': 'Amsterdam',
+  'FRA': 'Frankfurt',
+  'MUC': 'Munich',
+  'VIE': 'Vienna',
+  'ZRH': 'Zurich',
+  'CPH': 'Copenhagen',
+  'ARN': 'Stockholm',
+  'OSL': 'Oslo',
+  'DUB': 'Dublin',
+  'BRU': 'Brussels',
+  'LIS': 'Lisbon',
+  'ATH': 'Athens',
+  'IST': 'Istanbul',
+  'PRG': 'Prague',
+  'BUD': 'Budapest',
+  'WAW': 'Warsaw',
+  
+  // Asia
+  'NRT': 'Tokyo',
+  'HND': 'Tokyo',
+  'ICN': 'Seoul',
+  'PEK': 'Beijing',
+  'PVG': 'Shanghai',
+  'HKG': 'Hong Kong',
+  'SIN': 'Singapore',
+  'BKK': 'Bangkok',
+  'KUL': 'Kuala Lumpur',
+  'MNL': 'Manila',
+  'TPE': 'Taipei',
+  'DEL': 'Delhi',
+  'BOM': 'Mumbai',
+  'DXB': 'Dubai',
+  
+  // Australia & Pacific
+  'SYD': 'Sydney',
+  'MEL': 'Melbourne',
+  'BNE': 'Brisbane',
+  'PER': 'Perth',
+  'AKL': 'Auckland',
+  'CHC': 'Christchurch',
+  
+  // South America
+  'GRU': 'Sao Paulo',
+  'GIG': 'Rio de Janeiro',
+  'EZE': 'Buenos Aires',
+  'BOG': 'Bogota',
+  'LIM': 'Lima',
+  'SCL': 'Santiago',
+  
+  // Canada
+  'YYZ': 'Toronto',
+  'YVR': 'Vancouver',
+  'YUL': 'Montreal',
+  'YYC': 'Calgary',
+  
+  // Caribbean
+  'SJU': 'San Juan',
+  'NAS': 'Nassau',
+  'MBJ': 'Montego Bay',
+  'PUJ': 'Punta Cana',
+  'AUA': 'Aruba',
+  'CUR': 'Curacao',
+};
+
+/**
+ * Get city name from IATA code
+ * Falls back to the IATA code itself if not found
+ */
+export function getCityFromIATA(iataCode: string): string {
+  const upperCode = iataCode.toUpperCase();
+  return IATA_TO_CITY[upperCode] || upperCode;
+}
