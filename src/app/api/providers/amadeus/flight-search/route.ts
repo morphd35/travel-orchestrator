@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAmadeusApiKey, getAmadeusApiSecret, getAmadeusHost, validateServerEnv } from '@/lib/env';
+
+// Validate environment on module load
+const envValidation = validateServerEnv();
+if (!envValidation.valid) {
+  console.error('❌ Environment validation failed:');
+  envValidation.errors.forEach(err => console.error('  -', err));
+}
 
 // Amadeus API configuration
-const AMADEUS_API_KEY = process.env.AMADEUS_API_KEY || '';
-const AMADEUS_API_SECRET = process.env.AMADEUS_API_SECRET || '';
-const AMADEUS_HOST = process.env.AMADEUS_HOST || 'https://test.api.amadeus.com';
+const AMADEUS_API_KEY = getAmadeusApiKey();
+const AMADEUS_API_SECRET = getAmadeusApiSecret();
+const AMADEUS_HOST = getAmadeusHost();
 
 // Token cache to avoid fetching new token for every request
 let cachedToken: { access_token: string; expires_at: number } | null = null;
