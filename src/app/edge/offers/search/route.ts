@@ -22,30 +22,70 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // TODO: Call real travel API providers (Amadeus, Skyscanner, etc.)
-        // For now, return mock packages with realistic data
-        const results = [
-            {
-                id: 'pkg_1',
-                summary: `${origin} → ${destination}, ${startDate}–${endDate}, 3★ hotel`,
-                total: 642,
-                components: {
-                    flight: { carrier: 'AA', stops: 0 },
-                    hotel: includeHotel ? { name: 'Beach Inn' } : undefined,
-                    car: includeCar ? { vendor: 'Hertz' } : undefined,
-                },
+        // Call Amadeus Flight Search API
+        const flightSearchUrl = new URL('/edge/providers/amadeus/flight-search', req.url);
+        
+        const flightResponse = await fetch(flightSearchUrl.toString(), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
             },
-            {
-                id: 'pkg_2',
-                summary: `${origin} → ${destination}, ${startDate}–${endDate}, 4★ hotel`,
-                total: 788,
+            body: JSON.stringify({
+                originLocationCode: origin,
+                destinationLocationCode: destination,
+                departureDate: startDate,
+                returnDate: endDate,
+                adults: 1,
+                currencyCode: 'USD',
+                max: 20,
+            }),
+        });
+
+        if (!flightResponse.ok) {
+            console.error('Flight search failed:', await flightResponse.text());
+            throw new Error('Failed to fetch flight data');
+        }
+
+        const flightData = await flightResponse.json();
+        const flights = flightData.results || [];
+
+        // Build travel packages from real flight data
+        const results = flights.map((flight: any, index: number) => {
+            const flightPrice = flight.total || 0;
+            
+            // Add estimated hotel price if requested (mock for now)
+            const hotelPrice = includeHotel ? 150 * calculateNights(startDate, endDate) : 0;
+            
+            // Add estimated car rental if requested (mock for now)
+            const carPrice = includeCar ? 50 * calculateNights(startDate, endDate) : 0;
+            
+            const totalPrice = flightPrice + hotelPrice + carPrice;
+
+            return {
+                id: `pkg_${flight.id || index}`,
+                summary: `${origin} → ${destination}, ${startDate}–${endDate}${includeHotel ? ', Hotel included' : ''}${includeCar ? ', Car rental' : ''}`,
+                total: Math.round(totalPrice * 100) / 100,
                 components: {
-                    flight: { carrier: 'WN', stops: 1 },
-                    hotel: includeHotel ? { name: 'Sunset Suites' } : undefined,
-                    car: includeCar ? { vendor: 'Avis' } : undefined,
+                    flight: {
+                        carrier: flight.carrier,
+                        stops: flight.stops,
+                        price: flightPrice,
+                    },
+                    hotel: includeHotel ? {
+                        name: getHotelName(index),
+                        pricePerNight: 150,
+                        nights: calculateNights(startDate, endDate),
+                    } : undefined,
+                    car: includeCar ? {
+                        vendor: getCarVendor(index),
+                        pricePerDay: 50,
+                        days: calculateNights(startDate, endDate),
+                    } : undefined,
                 },
-            },
-        ];
+                // Include full flight offer for detailed view
+                fullFlightOffer: flight.fullOffer,
+            };
+        });
 
         return NextResponse.json({ results });
     } catch (error) {
@@ -55,4 +95,32 @@ export async function POST(req: NextRequest) {
             { status: 500 }
         );
     }
+}
+
+// Helper functions
+function calculateNights(startDate: string, endDate: string): number {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+}
+
+function getHotelName(index: number): string {
+    const hotels = [
+        'Marriott Downtown',
+        'Hilton City Center',
+        'Hyatt Regency',
+        'Sheraton Plaza',
+        'InterContinental',
+        'Westin Grand',
+        'DoubleTree Suites',
+        'Courtyard by Marriott',
+    ];
+    return hotels[index % hotels.length];
+}
+
+function getCarVendor(index: number): string {
+    const vendors = ['Hertz', 'Enterprise', 'Avis', 'Budget', 'National', 'Alamo'];
+    return vendors[index % vendors.length];
 }
