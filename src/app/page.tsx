@@ -100,14 +100,15 @@ export default function Home() {
         console.error('Flight search error:', errorText);
         setError('Unable to fetch flight data. Showing limited results.');
         
-        // Show minimal mock results as fallback
+        // Show minimal mock results as fallback - include hotel if requested
         setResults([
           {
             id: 'fallback_1',
-            summary: `${payload.origin} → ${payload.destination}, ${payload.startDate}–${payload.endDate}`,
-            total: 500,
+            summary: `${payload.origin} → ${payload.destination}, ${payload.startDate}–${payload.endDate}${payload.includeHotel ? ', Hotel' : ''}`,
+            total: 500 + (payload.includeHotel ? 1050 : 0), // 7 nights * $150
             components: {
               flight: { carrier: 'Various', stops: 0 },
+              hotel: payload.includeHotel ? { name: 'Hotels Available' } : undefined,
             },
           },
         ]);
