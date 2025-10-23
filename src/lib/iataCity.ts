@@ -120,3 +120,46 @@ export function getCityFromIATA(iataCode: string): string {
   const upperCode = iataCode.toUpperCase();
   return IATA_TO_CITY[upperCode] || upperCode;
 }
+
+/**
+ * Common city name to IATA code mappings
+ * For users who might enter city names instead of airport codes
+ */
+const CITY_TO_IATA: Record<string, string> = {
+  'NYC': 'JFK',
+  'NEW YORK': 'JFK',
+  'NEWYORK': 'JFK',
+  'LA': 'LAX',
+  'SF': 'SFO',
+  'CHI': 'ORD',
+  'CHICAGO': 'ORD',
+  'LON': 'LHR',
+  'LONDON': 'LHR',
+  'PAR': 'CDG',
+  'PARIS': 'CDG',
+  'TYO': 'NRT',
+  'TOKYO': 'NRT',
+  'ROM': 'FCO',
+  'ROME': 'FCO',
+};
+
+/**
+ * Normalize airport/city code to valid IATA code
+ * Converts common city abbreviations to proper 3-letter IATA codes
+ */
+export function normalizeToIATA(code: string): string {
+  const upperCode = code.toUpperCase().trim();
+  
+  // If it's already a known IATA code, return it
+  if (IATA_TO_CITY[upperCode]) {
+    return upperCode;
+  }
+  
+  // Try to convert from city name
+  if (CITY_TO_IATA[upperCode]) {
+    return CITY_TO_IATA[upperCode];
+  }
+  
+  // Return as-is (will be validated by API)
+  return upperCode;
+}
