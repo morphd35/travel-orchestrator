@@ -583,6 +583,77 @@ export default function Home() {
           </div>
         )}
 
+
+        {/* Activities Section */}
+        {activities.length > 0 && results.length > 0 && (
+          <div className="max-w-4xl mx-auto mt-12">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-slate-900">
+                Things to Do in {searchParams?.destination}
+              </h3>
+              <p className="text-sm text-slate-500 mt-1">Top-rated activities and tours</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {activities.map((activity, index) => (
+                <div
+                  key={index}
+                  className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all overflow-hidden group"
+                >
+                  {activity.imageUrl && (
+                    <div className="relative h-48 overflow-hidden">
+                      <img
+                        src={activity.imageUrl}
+                        alt={activity.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      {activity.rating > 0 && (
+                        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1">
+                          <span className="text-yellow-500 text-sm">★</span>
+                          <span className="text-sm font-semibold text-slate-900">{activity.rating.toFixed(1)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className="p-4">
+                    <h4 className="font-bold text-slate-900 text-sm mb-2 line-clamp-2">
+                      {activity.title}
+                    </h4>
+                    
+                    {activity.reviewCount > 0 && (
+                      <p className="text-xs text-slate-500 mb-3">
+                        {activity.reviewCount.toLocaleString()} reviews
+                      </p>
+                    )}
+                    
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="text-xs text-slate-500">From</p>
+                        <p className="text-lg font-bold text-green-600">
+                          ${activity.fromPrice.toFixed(0)}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <a
+                      href={activity.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:from-orange-600 hover:to-red-600 transition-all duration-200 flex items-center justify-center gap-2 text-sm"
+                    >
+                      <span>Book on Viator</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Empty State */}
         {!loading && results.length === 0 && (
           <div className="max-w-2xl mx-auto text-center py-16">
