@@ -64,6 +64,21 @@ export default function Home() {
       budgetUsd: formData.get('budgetUsd') ? Number(formData.get('budgetUsd')) : undefined,
     };
 
+    // Validate that we have origin and destination
+    if (!payload.origin || !payload.destination) {
+      setError('Please select both origin and destination airports');
+      setLoading(false);
+      return;
+    }
+
+    // Log search parameters for debugging
+    console.log('🔍 Search initiated:', {
+      origin: payload.origin,
+      destination: payload.destination,
+      dates: `${payload.startDate} to ${payload.endDate}`,
+      includeHotel: payload.includeHotel,
+    });
+
     // Store search params for use in results
     setSearchParams(payload);
 
