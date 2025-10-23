@@ -76,29 +76,26 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
-    const products = data.products || [];
+    const products = data.data || [];
 
     // Parse and filter top-rated activities
     const activities: Activity[] = products
       .filter((p: any) => {
         // Filter for high-rated activities (4+ stars)
-        const rating = p.reviews?.combinedAverageRating || 0;
+        const rating = p.rating || 0;
         return rating >= 4.0;
       })
       .slice(0, limit)
       .map((product: any) => {
-        const pricing = product.pricing?.summary || {};
-        const reviews = product.reviews || {};
-        
         return {
           title: product.title || 'Untitled Activity',
-          fromPrice: pricing.fromPrice || 0,
-          currency: product.pricing?.currency || 'USD',
-          url: constructBookingUrl(product.productUrl || '', product.productCode || ''),
-          description: product.description || '',
-          imageUrl: product.images?.[0]?.variants?.[0]?.url || product.primaryImage || '',
-          rating: reviews.combinedAverageRating || 0,
-          reviewCount: reviews.totalReviews || 0,
+          fromPrice: product.price || 0,
+          currency: product.currencyCode || 'USD',
+          url: constructBookingUrl(product.productUrlName || '', product.code || ''),
+          description: product.shortDescription || product.description || '',
+          imageUrl: product.thumbnailHiResURL || product.thumbnailURL || '',
+          rating: product.rating || 0,
+          reviewCount: product.reviewCount || 0,
         };
       });
 
