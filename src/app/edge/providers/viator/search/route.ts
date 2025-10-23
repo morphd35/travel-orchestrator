@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getViatorApiKey } from '@/lib/env';
 
-const VIATOR_API_KEY = process.env.VIATOR_API_KEY || '';
+const VIATOR_API_KEY = getViatorApiKey();
 const VIATOR_BASE_URL = 'https://api.viator.com/partner';
 
 interface ViatorSearchRequest {
