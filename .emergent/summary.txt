@@ -1,0 +1,93 @@
+<analysis>
+The previous AI engineer successfully transformed a basic travel app into a feature-rich MVP. Key initial tasks involved setting up the Next.js application, fixing Tailwind CSS v4 compatibility, and resolving a critical 502 proxy routing issue by introducing an  API prefix. The engineer then focused on enhancing the user experience with a modern UI, smart date coordination, and an intelligent airport autocomplete. Significant effort went into integrating real-time flight data via Amadeus, and setting up hotel deeplinks with Booking.com, and activity integration with Viator, initially with mock data due to API key delays. The engineer demonstrated strong debugging skills, particularly with environment and API-related issues, culminating in robust environment variable guards and comprehensive documentation. The session concluded with some minor outstanding bugs related to form submission and Booking.com deep-linking.
+</analysis>
+
+<product_requirements>
+The initial request was to clone and set up a Travel Orchestrator app, a Next.js application with a search interface for flights, hotels, cars, and activities, featuring a modern UI with Tailwind CSS. The user then explicitly requested a more modern and intuitive frontend design, which the AI engineer implemented. Following this, the user reported a  search error and requested date coordination (return date after departure, smart month navigation). Subsequently, the user asked for real flight totals using Amadeus, requiring an OAuth token and specific query parameters. The next feature was to show 2-3 activities with direct partner deeplinks via Viator, and then to integrate Booking.com for hotels, including a View Stays button with affiliate tracking and city inference from IATA codes. Finally, robust environment variable guards for API keys and comprehensive documentation were requested. The primary problem being solved is to create a fully functional travel booking platform MVP with real-time data and affiliate monetization.
+</product_requirements>
+
+<key_technical_concepts>
+- **Next.js 15.x (App Router)**: Frontend and API routes.
+- **Tailwind CSS v4**: Modern styling framework.
+- **Amadeus API**: Real-time flight search.
+- **Booking.com API**: Hotel deep-linking and affiliate tracking.
+- **Viator API**: Activity search (currently mocked).
+- **Environment Variables**:  for client, server-side for secrets.
+- **Proxy/Ingress Routing**: Handling  vs  routes.
+</key_technical_concepts>
+
+<code_architecture>
+
+
+-   : Main React component. Updated heavily to implement UI redesign, search form logic, date validation, API calls (Amadeus, Viator, Booking.com), display of flight/hotel/activity results, and integration of autocomplete component.
+-   : Global Tailwind CSS. Updated for Tailwind v4 compatibility () and modern design.
+-   : Next.js configuration. Modified to add  and  to handle the preview proxy issue.
+-   : Next.js middleware. Created to handle API requests more robustly.
+-   : Utility for dynamically constructing API paths ( or ) based on . Crucial for the proxy hot-fix.
+-   : Contains an in-memory database of airports and a function for fuzzy searching by city name, returning IATA codes.
+-   : Reusable React component for interactive airport search input, using .
+-   : Utility to generate Booking.com affiliate deep-links, using the provided affiliate ID and search parameters.
+-   : Simple mapping of IATA codes to city names for Booking.com integration.
+-   : Centralized environment variable validation. Throws errors on server startup if required server-side variables are missing, ensuring client-side code only accesses  variables.
+-   : API route for the main travel search, now integrated with Amadeus. This is the hot-fix route to bypass the  proxy issue.
+-   : Original API route, kept for local development.
+-   : Dedicated API route for calling the Amadeus Flight Offers API, including OAuth token management and response mapping.
+-   : Same as above, but for local  path.
+-   : API route for Viator activity search, currently returning mock data.
+-   : Same as above, but for local  path.
+-   : Simple health check endpoint.
+-   : Stores sensitive API keys and .
+-   : Template for environment variables.
+-   : Updated with comprehensive setup and usage instructions, including environment variables and the routing hot-fix.
+-   : Specific documentation for the  routing hot-fix.
+</code_architecture>
+
+<pending_tasks>
+-   **Booking.com Affiliate ID**: Replace test AID with a real one for live monetization.
+-   **Viator API Activation**: Obtain proper credentials for the Viator API to switch from mock data to real activity search.
+-   **Autocomplete Form Submission Bug**: Debug and fix the issue where IATA codes might not be properly passed to the booking deeplink.
+</pending_tasks>
+
+<current_work>
+Immediately before this summary, the AI engineer was debugging an issue with the Booking.com deep-link functionality. Specifically, the user reported that the View Stays button was redirecting to , indicating the search string (Netid State Recv-Q Send-Q Local Address:Port      Peer Address:Port    Process
+u_str ESTAB 0      0                  * 12936966             * 12936967       
+u_str ESTAB 0      0                  * 12936951             * 12936952       
+u_str ESTAB 0      0                  * 12936967             * 12936966       
+u_str ESTAB 0      0                  * 12936952             * 12936951       
+tcp   ESTAB 0      0        10.227.4.50:8010      10.64.132.39:43138          
+tcp   ESTAB 0      0        10.227.4.50:58922     34.102.203.0:https          
+tcp   ESTAB 0      0          127.0.0.1:46820        127.0.0.1:8010           
+tcp   ESTAB 0      0        10.227.4.50:8010      10.64.130.21:48618          
+tcp   ESTAB 0      0        10.227.4.50:8010     10.64.132.213:43188          
+tcp   ESTAB 0      0        10.227.4.50:8010      10.64.135.85:47906          
+tcp   ESTAB 0      0        10.227.4.50:8010     10.64.135.102:59110          
+tcp   ESTAB 0      0        10.227.4.50:50390     104.16.31.34:https          
+tcp   ESTAB 0      0        10.227.4.50:8010      10.64.132.39:43144          
+tcp   ESTAB 0      0        10.227.4.50:58914     34.102.203.0:https          
+tcp   ESTAB 0      0          127.0.0.1:8010         127.0.0.1:46820           parameter) was empty or invalid.
+
+The AI engineer traced the issue to the  containing an IATA code, which then gets converted to a city name using . The hypothesis was that while the code correctly generated the URL with a city name (e.g., Cancun), the actual click in the user's browser (or Booking.com's interpretation) was failing.
+
+To address this, the engineer added hidden input fields within the form to explicitly pass the selected IATA codes, hoping to ensure the correct destination information is stored and used in the  function. Additional debugging  statements were also added to  to inspect the  parameter being sent to the  function.
+
+The last action recorded was a browser navigation attempt to test with Boston to verify the city lookup and URL generation in the console after these changes.
+</current_work>
+
+<optional_next_step>
+Debug the Booking.com View Stays deeplink, focusing on how the city parameter (Netid State Recv-Q Send-Q Local Address:Port      Peer Address:Port    Process
+u_str ESTAB 0      0                  * 12936966             * 12936967       
+u_str ESTAB 0      0                  * 12936951             * 12936952       
+u_str ESTAB 0      0                  * 12936967             * 12936966       
+u_str ESTAB 0      0                  * 12936952             * 12936951       
+tcp   ESTAB 0      0        10.227.4.50:8010      10.64.132.39:43138          
+tcp   ESTAB 0      0        10.227.4.50:58922     34.102.203.0:https          
+tcp   ESTAB 0      0          127.0.0.1:46820        127.0.0.1:8010           
+tcp   ESTAB 0      0        10.227.4.50:8010      10.64.130.21:48618          
+tcp   ESTAB 0      0        10.227.4.50:8010     10.64.132.213:43188          
+tcp   ESTAB 0      0        10.227.4.50:8010      10.64.135.85:47906          
+tcp   ESTAB 0      0        10.227.4.50:8010     10.64.135.102:59110          
+tcp   ESTAB 0      0        10.227.4.50:50390     104.16.31.34:https          
+tcp   ESTAB 0      0        10.227.4.50:8010      10.64.132.39:43144          
+tcp   ESTAB 0      0        10.227.4.50:58914     34.102.203.0:https          
+tcp   ESTAB 0      0          127.0.0.1:8010         127.0.0.1:46820          ) is constructed and received by Booking.com, as user reported: still coming up empty on booking.
+</optional_next_step>

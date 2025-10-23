@@ -81,7 +81,7 @@ AMADEUS_API_SECRET=BNKrPStwLtNywXj7
 AMADEUS_HOST=https://test.api.amadeus.com
 
 # Optional - Mock data used if not provided
-VIATOR_API_KEY=8e597c56-c615-4686-b56b-8dfc744ddefc
+VIATOR_API_KEY=voyagebuddy-21
 
 # Optional - Defaults to demo ID
 NEXT_PUBLIC_BOOKING_AID=1234567
