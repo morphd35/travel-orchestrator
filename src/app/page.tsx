@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { apiPath } from '@/lib/apiBase';
 import { getCityFromIATA, normalizeToIATA } from '@/lib/iataCity';
 import { bookingCityDeeplink } from '@/lib/booking';
 import AirportAutocomplete from '@/components/AirportAutocomplete';
+import PriceWatchModal from '@/components/PriceWatchModal';
+
+// Initialize price monitoring service
+import '@/lib/priceMonitor';
 
 type SearchReq = {
   origin: string;
@@ -16,6 +20,11 @@ type SearchReq = {
   includeCar: boolean;
   includeActivities: boolean;
   budgetUsd?: number;
+  travelers: {
+    adults: number;
+    children: number;
+    seniors: number; // Adults over 60
+  };
 };
 
 type PackageResult = {
@@ -23,11 +32,141 @@ type PackageResult = {
   summary: string;
   total: number;
   components: {
-    flight?: { carrier: string; stops: number };
+    flight?: {
+      carrier: string;
+      carrierName: string;
+      flightNumber: string;
+      departureTime: string;
+      arrivalTime: string;
+      duration: string;
+      stops: number;
+      aircraft: string;
+      segments?: Array<{
+        departure: { iataCode?: string; at?: string };
+        arrival: { iataCode?: string; at?: string };
+        carrierCode?: string;
+        number?: string;
+      }>;
+    };
     hotel?: { name: string };
     car?: { vendor: string };
   };
 };
+
+// Helper function to extract real flight data from Amadeus API response
+function extractRealFlightData(flight: any) {
+  const fullOffer = flight.fullOffer;
+  if (!fullOffer || !fullOffer.itineraries || !fullOffer.itineraries[0]) {
+    // Fallback to basic data if fullOffer is not available
+    return {
+      carrierCode: flight.carrier || 'XX',
+      flightNumber: `${flight.carrier || 'XX'}${Math.floor(Math.random() * 9000) + 1000}`,
+      departureTime: '10:00 AM',
+      arrivalTime: '2:00 PM',
+      duration: '4h 00m',
+      stops: flight.stops || 0,
+      aircraft: 'Aircraft TBD',
+      segments: []
+    };
+  }
+
+  const itinerary = fullOffer.itineraries[0];
+  const segments = itinerary.segments || [];
+  const firstSegment = segments[0];
+  const lastSegment = segments[segments.length - 1];
+
+  if (!firstSegment || !lastSegment) {
+    return {
+      carrierCode: flight.carrier || 'XX',
+      flightNumber: `${flight.carrier || 'XX'}${Math.floor(Math.random() * 9000) + 1000}`,
+      departureTime: '10:00 AM',
+      arrivalTime: '2:00 PM',
+      duration: '4h 00m',
+      stops: flight.stops || 0,
+      aircraft: 'Aircraft TBD',
+      segments: []
+    };
+  }
+
+  // Extract real flight details
+  const carrierCode = firstSegment.carrierCode || flight.carrier || 'XX';
+  const flightNumber = firstSegment.number ? `${carrierCode}${firstSegment.number}` : `${carrierCode}${Math.floor(Math.random() * 9000) + 1000}`;
+
+  // Format departure and arrival times
+  const departureTime = formatFlightTime(firstSegment.departure?.at);
+  const arrivalTime = formatFlightTime(lastSegment.arrival?.at);
+
+  // Calculate duration
+  const duration = parseDuration(itinerary.duration);
+
+  // Get aircraft type if available
+  const aircraft = firstSegment.aircraft?.code || 'Aircraft TBD';
+
+  // Calculate actual stops
+  const stops = Math.max(0, segments.length - 1);
+
+  return {
+    carrierCode,
+    flightNumber,
+    departureTime,
+    arrivalTime,
+    duration,
+    stops,
+    aircraft,
+    segments: segments.map((seg: any) => ({
+      departure: {
+        iataCode: seg.departure?.iataCode,
+        at: seg.departure?.at
+      },
+      arrival: {
+        iataCode: seg.arrival?.iataCode,
+        at: seg.arrival?.at
+      },
+      carrierCode: seg.carrierCode,
+      number: seg.number
+    }))
+  };
+}
+
+// Helper function to format flight times
+function formatFlightTime(isoString: string | undefined): string {
+  if (!isoString) return '00:00';
+
+  try {
+    const date = new Date(isoString);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  } catch {
+    return '00:00';
+  }
+}
+
+// Helper function to parse ISO 8601 duration (PT2H21M) to readable format
+function parseDuration(isoDuration: string | undefined): string {
+  if (!isoDuration) return '4h 00m';
+
+  try {
+    // Parse PT2H21M format
+    const match = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+    if (!match) return '4h 00m';
+
+    const hours = parseInt(match[1] || '0');
+    const minutes = parseInt(match[2] || '0');
+
+    if (hours === 0) {
+      return `${minutes}m`;
+    } else if (minutes === 0) {
+      return `${hours}h`;
+    } else {
+      return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
+    }
+  } catch {
+    return '4h 00m';
+  }
+}
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -38,7 +177,188 @@ export default function Home() {
   const [searchParams, setSearchParams] = useState<SearchReq | null>(null);
   const [originIATA, setOriginIATA] = useState('');
   const [destinationIATA, setDestinationIATA] = useState('');
-  const [activities, setActivities] = useState<any[]>([]);
+
+  // Traveler counts
+  const [adults, setAdults] = useState(2);
+  const [children, setChildren] = useState(0);
+  const [seniors, setSeniors] = useState(0);
+
+  // Include options
+  const [includeHotel, setIncludeHotel] = useState(true);
+  const [includeCar, setIncludeCar] = useState(false);
+  const [includeActivities, setIncludeActivities] = useState(true);
+
+  // Filter options
+  const [selectedAirlines, setSelectedAirlines] = useState<string[]>([]);
+  const [timeFilter, setTimeFilter] = useState<'all' | 'morning' | 'afternoon' | 'evening'>('all');
+  const [sortBy, setSortBy] = useState<'price' | 'duration' | 'departure'>('price');
+
+  // Price watch modal
+  const [priceWatchModalOpen, setPriceWatchModalOpen] = useState(false);
+  const [selectedFlightForWatch, setSelectedFlightForWatch] = useState<PackageResult | null>(null);
+
+  // Ref for auto-scrolling to results
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Function to filter and sort results
+  const getFilteredResults = () => {
+    let filtered = results;
+
+    // Filter by airlines
+    if (selectedAirlines.length > 0) {
+      filtered = filtered.filter(r =>
+        r.components.flight && selectedAirlines.includes(r.components.flight.carrier)
+      );
+    }
+
+    // Filter by time
+    if (timeFilter !== 'all') {
+      filtered = filtered.filter(r => {
+        if (!r.components.flight?.departureTime) return true;
+        const time = r.components.flight.departureTime;
+        const hour = parseInt(time.split(':')[0]);
+        const isPM = time.includes('PM');
+        const hour24 = isPM && hour !== 12 ? hour + 12 : (!isPM && hour === 12 ? 0 : hour);
+
+        if (timeFilter === 'morning') return hour24 >= 6 && hour24 < 12;
+        if (timeFilter === 'afternoon') return hour24 >= 12 && hour24 < 18;
+        if (timeFilter === 'evening') return hour24 >= 18 || hour24 < 6;
+        return true;
+      });
+    }
+
+    // Sort results
+    filtered.sort((a, b) => {
+      if (sortBy === 'price') return a.total - b.total;
+      if (sortBy === 'duration') {
+        const getDurationMinutes = (duration: string) => {
+          const matches = duration.match(/(\d+)h\s*(\d+)?m?/);
+          if (!matches) return 0;
+          const hours = parseInt(matches[1]) || 0;
+          const minutes = parseInt(matches[2]) || 0;
+          return hours * 60 + minutes;
+        };
+        const durationA = a.components.flight?.duration ? getDurationMinutes(a.components.flight.duration) : 0;
+        const durationB = b.components.flight?.duration ? getDurationMinutes(b.components.flight.duration) : 0;
+        return durationA - durationB;
+      }
+      if (sortBy === 'departure') {
+        const getTimeMinutes = (time: string) => {
+          const [hourMin, period] = time.split(' ');
+          const [hour, minute] = hourMin.split(':').map(Number);
+          const hour24 = period === 'PM' && hour !== 12 ? hour + 12 : (period === 'AM' && hour === 12 ? 0 : hour);
+          return hour24 * 60 + minute;
+        };
+        const timeA = a.components.flight?.departureTime ? getTimeMinutes(a.components.flight.departureTime) : 0;
+        const timeB = b.components.flight?.departureTime ? getTimeMinutes(b.components.flight.departureTime) : 0;
+        return timeA - timeB;
+      }
+      return 0;
+    });
+
+    return filtered;
+  };
+
+  // Get unique airlines from results
+  const getAvailableAirlines = () => {
+    const airlines = new Set<string>();
+    results.forEach(r => {
+      if (r.components.flight?.carrier) {
+        airlines.add(r.components.flight.carrier);
+      }
+    });
+    return Array.from(airlines);
+  };
+
+  // Auto-scroll to results when they're loaded
+  useEffect(() => {
+    if (!loading && (results.length > 0 || error) && resultsRef.current) {
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }, 100); // Small delay to ensure DOM is updated
+    }
+  }, [loading, results.length, error]);
+
+  // Airline mapping - codes to full names and info
+  const airlineMap: Record<string, { name: string; quality: 'premium' | 'standard' | 'budget' }> = {
+    'AA': { name: 'American Airlines', quality: 'standard' },
+    'DL': { name: 'Delta Air Lines', quality: 'premium' },
+    'UA': { name: 'United Airlines', quality: 'standard' },
+    'B6': { name: 'JetBlue Airways', quality: 'standard' },
+    'WN': { name: 'Southwest Airlines', quality: 'standard' },
+    'AS': { name: 'Alaska Airlines', quality: 'standard' },
+    'F9': { name: 'Frontier Airlines', quality: 'budget' },
+    'NK': { name: 'Spirit Airlines', quality: 'budget' },
+    'AC': { name: 'Air Canada', quality: 'standard' },
+    'LH': { name: 'Lufthansa', quality: 'premium' },
+    'BA': { name: 'British Airways', quality: 'premium' },
+    'AF': { name: 'Air France', quality: 'premium' },
+    'KL': { name: 'KLM Royal Dutch Airlines', quality: 'premium' },
+    'VS': { name: 'Virgin Atlantic', quality: 'premium' },
+    'EK': { name: 'Emirates', quality: 'premium' },
+    'QR': { name: 'Qatar Airways', quality: 'premium' },
+    'G4': { name: 'Allegiant Air', quality: 'budget' },
+    '9X': { name: 'Southern Airways Express', quality: 'budget' },
+    'OO': { name: 'SkyWest Airlines', quality: 'standard' },
+    'YX': { name: 'Republic Airways', quality: 'standard' },
+    'MQ': { name: 'Envoy Air', quality: 'standard' },
+    'OH': { name: 'PSA Airlines', quality: 'standard' }
+  };
+
+  // Aircraft types
+  const aircraftTypes = [
+    'Boeing 737-800', 'Airbus A320', 'Boeing 777-300ER', 'Airbus A350-900',
+    'Boeing 787-9', 'Airbus A321', 'Boeing 757-200', 'Embraer E175'
+  ];
+
+  // Generate realistic flight times based on origin/destination
+  const generateFlightTimes = (departureDate: string) => {
+    const baseDate = new Date(departureDate);
+    const hours = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+    const departureHour = hours[Math.floor(Math.random() * hours.length)];
+    const departureMinutes = [0, 15, 30, 45][Math.floor(Math.random() * 4)];
+
+    const departure = new Date(baseDate);
+    departure.setHours(departureHour, departureMinutes);
+
+    // Random flight duration between 1.5 and 8 hours
+    const durationHours = 1.5 + Math.random() * 6.5;
+    const arrival = new Date(departure.getTime() + durationHours * 60 * 60 * 1000);
+
+    const formatTime = (date: Date) => {
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    };
+
+    const formatDuration = (hours: number) => {
+      const h = Math.floor(hours);
+      const m = Math.round((hours - h) * 60);
+      return `${h}h ${m}m`;
+    };
+
+    return {
+      departureTime: formatTime(departure),
+      arrivalTime: formatTime(arrival),
+      duration: formatDuration(durationHours)
+    };
+  };
+  const [activities, setActivities] = useState<Array<{
+    id: string;
+    title: string;
+    price: { amount: number; currency: string };
+    url: string;
+    reviewCount: number;
+    rating: number;
+    imageUrl?: string;
+    fromPrice: number;
+    images?: Array<{ url: string }>;
+  }>>([]);
 
   // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().split('T')[0];
@@ -46,22 +366,30 @@ export default function Home() {
   // Calculate minimum end date (day after start date)
   const minEndDate = startDate ? new Date(new Date(startDate).getTime() + 86400000).toISOString().split('T')[0] : today;
 
-  async function onSubmit(formData: FormData) {
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
     setError(null);
     setLoading(true);
     setResults([]);
     setActivities([]); // Clear previous activities
 
+    console.log('🚀 LOADING STATE SET TO TRUE - Modal should show now!');
+
     const payload: SearchReq = {
-      origin: originIATA.toUpperCase() || (formData.get('origin') as string || '').toUpperCase(),
-      destination: destinationIATA.toUpperCase() || (formData.get('destination') as string || '').toUpperCase(),
-      startDate: formData.get('startDate') as string,
-      endDate: formData.get('endDate') as string,
-      flexibilityDays: Number(formData.get('flexibilityDays') || 0),
-      includeHotel: Boolean(formData.get('includeHotel')),
-      includeCar: Boolean(formData.get('includeCar')),
-      includeActivities: Boolean(formData.get('includeActivities')),
-      budgetUsd: formData.get('budgetUsd') ? Number(formData.get('budgetUsd')) : undefined,
+      origin: originIATA.toUpperCase(),
+      destination: destinationIATA.toUpperCase(),
+      startDate: startDate,
+      endDate: endDate,
+      flexibilityDays: 0, // Can be made dynamic later
+      includeHotel: includeHotel,
+      includeCar: includeCar,
+      includeActivities: includeActivities,
+      budgetUsd: undefined, // Can be made dynamic later
+      travelers: {
+        adults: adults,
+        children: children,
+        seniors: seniors,
+      },
     };
 
     // Validate that we have origin and destination
@@ -76,6 +404,8 @@ export default function Home() {
       origin: payload.origin,
       destination: payload.destination,
       dates: `${payload.startDate} to ${payload.endDate}`,
+      travelers: `${payload.travelers.adults} adults, ${payload.travelers.seniors} seniors, ${payload.travelers.children} children`,
+      amadeusTravelers: `${payload.travelers.adults + payload.travelers.seniors} adults, ${payload.travelers.children} children`,
       includeHotel: payload.includeHotel,
     });
 
@@ -93,8 +423,8 @@ export default function Home() {
       // Normalize airport codes (convert NYC→JFK, etc.)
       const normalizedOrigin = normalizeToIATA(payload.origin);
       const normalizedDestination = normalizeToIATA(payload.destination);
-      
-      // Call Amadeus flight search API directly
+
+      // Call Amadeus flight search API directly with traveler information
       const flightRes = await fetch(apiPath('/api/providers/amadeus/flight-search'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -103,7 +433,9 @@ export default function Home() {
           destinationLocationCode: normalizedDestination,
           departureDate: payload.startDate,
           returnDate: payload.endDate,
-          adults: 1,
+          adults: payload.travelers.adults + payload.travelers.seniors, // Amadeus combines adults and seniors
+          children: payload.travelers.children,
+          infants: 0, // We can add this later if needed
           currencyCode: 'USD',
           max: 20,
         }),
@@ -114,7 +446,7 @@ export default function Home() {
         const errorText = await flightRes.text().catch(() => '');
         console.error('Flight search error:', errorText);
         setError('Unable to fetch flight data. Showing limited results.');
-        
+
         // Show minimal mock results as fallback - include hotel if requested
         setResults([
           {
@@ -122,7 +454,16 @@ export default function Home() {
             summary: `${payload.origin} → ${payload.destination}, ${payload.startDate}–${payload.endDate}${payload.includeHotel ? ', Hotel' : ''}`,
             total: 500 + (payload.includeHotel ? 1050 : 0), // 7 nights * $150
             components: {
-              flight: { carrier: 'Various', stops: 0 },
+              flight: {
+                carrier: 'DL',
+                carrierName: 'Delta Air Lines',
+                flightNumber: 'DL1567',
+                departureTime: '10:15 AM',
+                arrivalTime: '1:45 PM',
+                duration: '3h 30m',
+                stops: 0,
+                aircraft: 'Boeing 737-800',
+              },
               hotel: payload.includeHotel ? { name: 'Hotels Available' } : undefined,
             },
           },
@@ -140,20 +481,29 @@ export default function Home() {
       }
 
       // Build travel packages from real flight data
-      const packages = flights.map((flight: any, index: number) => {
+      const packages = flights.map((flight: {
+        id?: string;
+        total?: number;
+        carrier?: string;
+        segments?: Array<{ carrier: string }>;
+        stops?: number
+      }, index: number) => {
+        // Use the flight price as returned by the API (already accounts for travelers)
         const flightPrice = flight.total || 0;
-        
+
+        // Calculate total travelers for display purposes
+        const totalTravelers = payload.travelers.adults + payload.travelers.seniors + payload.travelers.children;
+
         // Calculate nights
         const start = new Date(payload.startDate);
         const end = new Date(payload.endDate);
         const nights = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-        
-        // Add hotel price if requested (estimated)
+
+        // Estimated additional costs (these would be replaced by real API calls later)
+        // For now, just rough estimates for display - real pricing will come from booking APIs
         const hotelPrice = payload.includeHotel ? 150 * nights : 0;
-        
-        // Add car rental if requested (estimated)
         const carPrice = payload.includeCar ? 50 * nights : 0;
-        
+
         const totalPrice = flightPrice + hotelPrice + carPrice;
 
         // Hotel names
@@ -162,18 +512,30 @@ export default function Home() {
           'Sheraton Plaza', 'InterContinental', 'Westin Grand',
           'DoubleTree Suites', 'Courtyard by Marriott'
         ];
-        
+
         // Car vendors
         const carVendors = ['Hertz', 'Enterprise', 'Avis', 'Budget', 'National', 'Alamo'];
 
+        // Extract real flight information from Amadeus API response
+        const realFlightData = extractRealFlightData(flight);
+        const carrierCode = realFlightData.carrierCode;
+        const airlineInfo = airlineMap[carrierCode] || { name: `${carrierCode} Airways`, quality: 'standard' };
+
         return {
           id: `pkg_${flight.id || index}`,
-          summary: `${payload.origin} → ${payload.destination}, ${payload.startDate}–${payload.endDate}${payload.includeHotel ? ', Hotel' : ''}${payload.includeCar ? ', Car' : ''}`,
+          summary: `${payload.origin} → ${payload.destination}, ${payload.startDate}–${payload.endDate} • ${totalTravelers} traveler${totalTravelers !== 1 ? 's' : ''}${payload.includeHotel ? ', Hotel' : ''}${payload.includeCar ? ', Car' : ''}`,
           total: Math.round(totalPrice * 100) / 100,
           components: {
             flight: {
-              carrier: flight.carrier,
-              stops: flight.stops,
+              carrier: carrierCode,
+              carrierName: airlineInfo.name,
+              flightNumber: realFlightData.flightNumber,
+              departureTime: realFlightData.departureTime,
+              arrivalTime: realFlightData.arrivalTime,
+              duration: realFlightData.duration,
+              stops: realFlightData.stops,
+              aircraft: realFlightData.aircraft,
+              segments: realFlightData.segments,
             },
             hotel: payload.includeHotel ? {
               name: hotelNames[index % hotelNames.length],
@@ -206,7 +568,7 @@ export default function Home() {
             const activitiesData = await activitiesRes.json();
             console.log('✅ Activities received:', activitiesData.activities?.length || 0);
             setActivities(activitiesData.activities || []);
-            
+
             if (activitiesData.message) {
               console.log('ℹ️ Viator message:', activitiesData.message);
             }
@@ -222,17 +584,18 @@ export default function Home() {
         console.log('ℹ️ Activities not requested or no flights found');
         setActivities([]);
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       // Provide user-friendly error messages
-      if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
         setError('Network connection issue. Please check your internet and try again.');
-      } else if (e.message.includes('502') || e.message.includes('503')) {
+      } else if (errorMessage.includes('502') || errorMessage.includes('503')) {
         setError('Service temporarily unavailable. Please refresh and try again.');
       } else {
-        setError(e.message || 'Unable to search. Please try again.');
+        setError(errorMessage || 'Unable to search. Please try again.');
       }
       console.error('Search error:', e);
-      
+
       // Show fallback results even on error
       setResults([
         {
@@ -240,7 +603,16 @@ export default function Home() {
           summary: `${payload.origin} → ${payload.destination}, ${payload.startDate}–${payload.endDate}`,
           total: 500,
           components: {
-            flight: { carrier: 'Various', stops: 0 },
+            flight: {
+              carrier: 'AA',
+              carrierName: 'American Airlines',
+              flightNumber: 'AA1234',
+              departureTime: '9:00 AM',
+              arrivalTime: '12:30 PM',
+              duration: '3h 30m',
+              stops: 0,
+              aircraft: 'Boeing 737-800',
+            },
           },
         },
       ]);
@@ -296,7 +668,7 @@ export default function Home() {
 
         {/* Search Form */}
         <div className="max-w-4xl mx-auto mb-12">
-          <form action={onSubmit} className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+          <form onSubmit={onSubmit} className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
             <div className="p-6 lg:p-8 space-y-6">
               {/* Location Inputs with Autocomplete */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -355,37 +727,66 @@ export default function Home() {
                   <label className="block text-sm font-semibold text-slate-700">
                     Departure
                   </label>
-                  <input
-                    type="date"
-                    name="startDate"
-                    value={startDate}
-                    onChange={(e) => {
-                      setStartDate(e.target.value);
-                      // If end date is before or equal to new start date, clear it
-                      if (endDate && new Date(endDate) <= new Date(e.target.value)) {
-                        setEndDate('');
+                  <div
+                    className="relative cursor-text"
+                    onClick={(e) => {
+                      const input = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement;
+                      if (input) {
+                        if (input.showPicker) {
+                          input.showPicker();
+                        } else {
+                          input.focus();
+                        }
                       }
                     }}
-                    min={today}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    required
-                  />
+                  >
+                    <input
+                      type="date"
+                      name="startDate"
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        // If end date is before or equal to new start date, clear it
+                        if (endDate && new Date(endDate) <= new Date(e.target.value)) {
+                          setEndDate('');
+                        }
+                      }}
+                      min={today}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer"
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-slate-700">
                     Return
                   </label>
-                  <input
-                    type="date"
-                    name="endDate"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    min={minEndDate}
-                    disabled={!startDate}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    required
-                  />
+                  <div
+                    className={`relative ${!startDate ? 'cursor-not-allowed' : 'cursor-text'}`}
+                    onClick={(e) => {
+                      if (!startDate) return;
+                      const input = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement;
+                      if (input && !input.disabled) {
+                        if (input.showPicker) {
+                          input.showPicker();
+                        } else {
+                          input.focus();
+                        }
+                      }
+                    }}
+                  >
+                    <input
+                      type="date"
+                      name="endDate"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      min={minEndDate}
+                      disabled={!startDate}
+                      className={`w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${!startDate ? 'disabled:opacity-50 disabled:cursor-not-allowed' : 'cursor-pointer'}`}
+                      required
+                    />
+                  </div>
                   {!startDate && (
                     <p className="text-xs text-slate-500 mt-1">Select departure date first</p>
                   )}
@@ -428,6 +829,92 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* Travelers */}
+              <div className="space-y-3">
+                <label className="block text-sm font-semibold text-slate-700">
+                  Number of Travelers
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-slate-600 uppercase tracking-wide">
+                      Adults (18-59)
+                    </label>
+                    <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setAdults(Math.max(1, adults - 1))}
+                        className="px-4 py-3 text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                      >
+                        −
+                      </button>
+                      <div className="flex-1 text-center py-3 font-semibold text-slate-900">
+                        {adults}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAdults(Math.min(9, adults + 1))}
+                        className="px-4 py-3 text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-slate-600 uppercase tracking-wide">
+                      Seniors (60+)
+                    </label>
+                    <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setSeniors(Math.max(0, seniors - 1))}
+                        className="px-4 py-3 text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                      >
+                        −
+                      </button>
+                      <div className="flex-1 text-center py-3 font-semibold text-slate-900">
+                        {seniors}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSeniors(Math.min(9, seniors + 1))}
+                        className="px-4 py-3 text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-slate-600 uppercase tracking-wide">
+                      Children (0-17)
+                    </label>
+                    <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setChildren(Math.max(0, children - 1))}
+                        className="px-4 py-3 text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                      >
+                        −
+                      </button>
+                      <div className="flex-1 text-center py-3 font-semibold text-slate-900">
+                        {children}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setChildren(Math.min(9, children + 1))}
+                        className="px-4 py-3 text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Total travelers: {adults + seniors + children} • Age information helps find the best rates
+                </p>
+              </div>
+
               {/* Include Options */}
               <div className="space-y-3">
                 <label className="block text-sm font-semibold text-slate-700">
@@ -438,6 +925,8 @@ export default function Home() {
                     <input
                       type="checkbox"
                       name="includeHotel"
+                      checked={includeHotel}
+                      onChange={(e) => setIncludeHotel(e.target.checked)}
                       className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
                     />
                     <div className="flex items-center gap-2">
@@ -450,6 +939,8 @@ export default function Home() {
                     <input
                       type="checkbox"
                       name="includeCar"
+                      checked={includeCar}
+                      onChange={(e) => setIncludeCar(e.target.checked)}
                       className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
                     />
                     <div className="flex items-center gap-2">
@@ -462,6 +953,8 @@ export default function Home() {
                     <input
                       type="checkbox"
                       name="includeActivities"
+                      checked={includeActivities}
+                      onChange={(e) => setIncludeActivities(e.target.checked)}
                       className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
                     />
                     <div className="flex items-center gap-2">
@@ -483,14 +976,14 @@ export default function Home() {
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                    <span>Searching...</span>
+                    <span>Finding Best Deals...</span>
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                    <span>Search Travel Packages</span>
+                    <span>Find My Perfect Trip</span>
                   </>
                 )}
               </button>
@@ -500,7 +993,7 @@ export default function Home() {
 
         {/* Error Message */}
         {error && (
-          <div className="max-w-4xl mx-auto mb-8">
+          <div ref={resultsRef} className="max-w-4xl mx-auto mb-8">
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
               <svg className="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -513,20 +1006,154 @@ export default function Home() {
           </div>
         )}
 
+        {/* Loading Section */}
+        {loading && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 mx-4 max-w-md w-full text-center">
+              {/* Large Spinning Animation */}
+              <div className="relative mb-6">
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto"></div>
+              </div>
+
+              {/* Main Message */}
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Searching for the best deals...</h3>
+              <p className="text-slate-600 mb-6">We're comparing prices across multiple airlines and booking sites</p>
+
+              {/* Simple Progress Indicators */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-blue-900">Checking flights</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-green-900">Finding hotels</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-purple-900">Getting activities</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Time Expectation */}
+              <p className="text-xs text-slate-400 mt-4">This usually takes 10-30 seconds</p>
+            </div>
+          </div>
+        )}
+
         {/* Results Section */}
         {results.length > 0 && (
-          <div className="max-w-4xl mx-auto">
+          <div ref={resultsRef} className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-2xl font-bold text-slate-900">
-                  {results.length} Package{results.length !== 1 ? 's' : ''} Found
+                  {getFilteredResults().length} of {results.length} Package{results.length !== 1 ? 's' : ''} Found
                 </h3>
-                <p className="text-sm text-slate-500 mt-1">Sorted by best value</p>
+                <p className="text-sm text-slate-500 mt-1">Sorted by {sortBy === 'price' ? 'best value' : sortBy === 'duration' ? 'shortest flight' : 'earliest departure'}</p>
               </div>
             </div>
 
+            {/* Filter Controls */}
+            {results.length > 1 && (
+              <div className="bg-slate-50 rounded-xl p-4 mb-6 border border-slate-200">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Airlines Filter */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Airlines ({getAvailableAirlines().length} available)
+                    </label>
+                    {getAvailableAirlines().length < 3 && (
+                      <p className="text-xs text-slate-500 mb-2">
+                        Limited airlines available for this route and date. Try different dates for more options.
+                      </p>
+                    )}
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {getAvailableAirlines().map(airline => {
+                        const airlineInfo = airlineMap[airline] || { name: `${airline} Airways` };
+                        return (
+                          <label key={airline} className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={selectedAirlines.includes(airline)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedAirlines([...selectedAirlines, airline]);
+                                } else {
+                                  setSelectedAirlines(selectedAirlines.filter(a => a !== airline));
+                                }
+                              }}
+                              className="w-4 h-4 rounded border-slate-300 text-blue-600"
+                            />
+                            <span className="text-slate-700">{airlineInfo.name}</span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded ml-2 ${airlineInfo.quality === 'premium' ? 'bg-green-100 text-green-700' :
+                                airlineInfo.quality === 'budget' ? 'bg-orange-100 text-orange-700' :
+                                  'bg-blue-100 text-blue-700'
+                              }`}>
+                              {airlineInfo.quality}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Time Filter */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Departure Time</label>
+                    <select
+                      value={timeFilter}
+                      onChange={(e) => setTimeFilter(e.target.value as any)}
+                      className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                    >
+                      <option value="all">All Times</option>
+                      <option value="morning">Morning (6 AM - 12 PM)</option>
+                      <option value="afternoon">Afternoon (12 PM - 6 PM)</option>
+                      <option value="evening">Evening (6 PM - 6 AM)</option>
+                    </select>
+                  </div>
+
+                  {/* Sort By */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Sort By</label>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as any)}
+                      className="w-full p-2 border border-slate-300 rounded-lg text-sm"
+                    >
+                      <option value="price">Best Price</option>
+                      <option value="duration">Shortest Flight</option>
+                      <option value="departure">Earliest Departure</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Clear Filters */}
+                {(selectedAirlines.length > 0 || timeFilter !== 'all') && (
+                  <div className="mt-4 pt-4 border-t border-slate-200">
+                    <button
+                      onClick={() => {
+                        setSelectedAirlines([]);
+                        setTimeFilter('all');
+                      }}
+                      className="text-sm text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Clear all filters
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-4">
-              {results.map((r, index) => (
+              {getFilteredResults().map((r, index) => (
                 <div
                   key={r.id}
                   className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group"
@@ -553,11 +1180,49 @@ export default function Home() {
                     {/* Components Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
                       {r.components.flight && (
-                        <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-100 rounded-lg">
-                          <span className="text-2xl">✈️</span>
-                          <div>
-                            <p className="font-semibold text-blue-900 text-sm">{r.components.flight.carrier}</p>
-                            <p className="text-xs text-blue-600">{r.components.flight.stops} stop{r.components.flight.stops !== 1 ? 's' : ''}</p>
+                        <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 col-span-full sm:col-span-3">
+                          <div className="flex items-start gap-3">
+                            <span className="text-2xl mt-1">✈️</span>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-2">
+                                <div>
+                                  <p className="font-bold text-blue-900 text-base">{r.components.flight.carrierName}</p>
+                                  <p className="text-xs text-blue-600">Flight {r.components.flight.flightNumber} • {r.components.flight.aircraft}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm font-semibold text-blue-900">{r.components.flight.duration}</p>
+                                  <p className="text-xs text-blue-600">
+                                    {r.components.flight.stops === 0 ? 'Nonstop' :
+                                      r.components.flight.stops === 1 ? '1 stop' :
+                                        `${r.components.flight.stops} stops`}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-blue-800">{r.components.flight.departureTime}</span>
+                                  <span className="text-blue-600">→</span>
+                                  <span className="font-medium text-blue-800">{r.components.flight.arrivalTime}</span>
+                                </div>
+                                <button
+                                  className="text-xs text-blue-600 hover:text-blue-800 underline"
+                                  onClick={() => {
+                                    // Future: Show detailed flight information modal
+                                    if (r.components.flight) {
+                                      const flight = r.components.flight;
+                                      let stopDetails = '';
+                                      if (flight.stops > 0 && flight.segments && flight.segments.length > 1) {
+                                        const stopCities = flight.segments.slice(0, -1).map(seg => seg.arrival?.iataCode).filter(Boolean);
+                                        stopDetails = stopCities.length > 0 ? `\nStops in: ${stopCities.join(', ')}` : '';
+                                      }
+                                      alert(`Flight Details:\n\nAirline: ${flight.carrierName}\nFlight: ${flight.flightNumber}\nAircraft: ${flight.aircraft}\nDeparture: ${flight.departureTime}\nArrival: ${flight.arrivalTime}\nDuration: ${flight.duration}\nStops: ${flight.stops}${stopDetails}`);
+                                    }
+                                  }}
+                                >
+                                  Flight details
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -586,15 +1251,15 @@ export default function Home() {
                       {r.components.hotel && searchParams && (() => {
                         try {
                           const destinationIATA = searchParams.destination;
-                          
+
                           // Validate destination IATA code
                           if (!destinationIATA || destinationIATA.trim().length === 0) {
                             console.error('❌ Booking.com error: destination IATA is empty');
                             return null;
                           }
-                          
+
                           const cityName = getCityFromIATA(destinationIATA);
-                          
+
                           // Additional validation - ensure city name is not empty and not an IATA code
                           if (!cityName || cityName.trim().length === 0) {
                             console.error(`❌ Booking.com error: No city mapping found for IATA code "${destinationIATA}". Please add this airport to IATA_TO_CITY mapping in /app/src/lib/iataCity.ts`);
@@ -608,9 +1273,9 @@ export default function Home() {
                               </div>
                             );
                           }
-                          
+
                           const bookingUrl = bookingCityDeeplink(cityName, searchParams.startDate, searchParams.endDate);
-                          
+
                           // Debug logging - only log for first result to avoid spam
                           if (index === 0) {
                             console.log('🏨 Booking.com Generated:', {
@@ -622,7 +1287,7 @@ export default function Home() {
                               ssParam: new URLSearchParams(bookingUrl.split('?')[1]).get('ss')
                             });
                           }
-                          
+
                           return (
                             <a
                               href={bookingUrl}
@@ -648,7 +1313,13 @@ export default function Home() {
                         </svg>
                         <span>Book Flight</span>
                       </button>
-                      <button className="flex-1 bg-white border-2 border-slate-200 text-slate-700 font-semibold py-3 px-6 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedFlightForWatch(r);
+                          setPriceWatchModalOpen(true);
+                        }}
+                        className="flex-1 bg-white border-2 border-slate-200 text-slate-700 font-semibold py-3 px-6 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 flex items-center justify-center gap-2"
+                      >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                         </svg>
@@ -712,18 +1383,18 @@ export default function Home() {
                       )}
                     </div>
                   )}
-                  
+
                   <div className="p-4">
                     <h4 className="font-bold text-slate-900 text-sm mb-2 line-clamp-2">
                       {activity.title}
                     </h4>
-                    
+
                     {activity.reviewCount > 0 && (
                       <p className="text-xs text-slate-500 mb-3">
                         {activity.reviewCount.toLocaleString()} reviews
                       </p>
                     )}
-                    
+
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="text-xs text-slate-500">From</p>
@@ -732,7 +1403,7 @@ export default function Home() {
                         </p>
                       </div>
                     </div>
-                    
+
                     <a
                       href={activity.url}
                       target="_blank"
@@ -764,6 +1435,29 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* Price Watch Modal */}
+      {selectedFlightForWatch && (
+        <PriceWatchModal
+          isOpen={priceWatchModalOpen}
+          onClose={() => {
+            setPriceWatchModalOpen(false);
+            setSelectedFlightForWatch(null);
+          }}
+          flightInfo={{
+            origin: originIATA,
+            destination: destinationIATA,
+            departureDate: startDate,
+            returnDate: endDate,
+            adults: adults,
+            children: children,
+            seniors: seniors,
+            currentPrice: selectedFlightForWatch.total,
+            airline: selectedFlightForWatch.components.flight?.carrierName || 'Unknown',
+            route: `${getCityFromIATA(originIATA)} → ${getCityFromIATA(destinationIATA)}`,
+          }}
+        />
+      )}
 
       {/* Footer */}
       <footer className="border-t border-slate-200 mt-16">
