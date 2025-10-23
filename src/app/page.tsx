@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { apiPath } from '@/lib/apiBase';
 import { getCityFromIATA, normalizeToIATA } from '@/lib/iataCity';
 import { bookingCityDeeplink } from '@/lib/booking';
+import AirportAutocomplete from '@/components/AirportAutocomplete';
 
 type SearchReq = {
   origin: string;
