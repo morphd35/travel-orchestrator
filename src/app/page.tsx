@@ -70,13 +70,17 @@ export default function Home() {
     }
 
     try {
+      // Normalize airport codes (convert NYC→JFK, etc.)
+      const normalizedOrigin = normalizeToIATA(payload.origin);
+      const normalizedDestination = normalizeToIATA(payload.destination);
+      
       // Call Amadeus flight search API directly
       const flightRes = await fetch(apiPath('/api/providers/amadeus/flight-search'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          originLocationCode: payload.origin,
-          destinationLocationCode: payload.destination,
+          originLocationCode: normalizedOrigin,
+          destinationLocationCode: normalizedDestination,
           departureDate: payload.startDate,
           returnDate: payload.endDate,
           adults: 1,
