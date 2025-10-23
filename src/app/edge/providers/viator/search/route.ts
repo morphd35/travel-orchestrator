@@ -121,13 +121,17 @@ export async function POST(req: NextRequest) {
 /**
  * Construct partner-tracked booking URL
  */
-function constructBookingUrl(baseUrl: string, productCode: string): string {
-  if (!baseUrl) {
-    return `https://www.viator.com/tours/${productCode}`;
+function constructBookingUrl(productUrlName: string, productCode: string): string {
+  if (!productUrlName && !productCode) {
+    return 'https://www.viator.com';
   }
   
-  // Add partner tracking parameters if needed
-  // Format: ?medium=api
+  // Construct Viator URL with product URL name or code
+  const baseUrl = productUrlName 
+    ? `https://www.viator.com/${productUrlName}`
+    : `https://www.viator.com/tours/${productCode}`;
+  
+  // Add partner tracking parameters
   const separator = baseUrl.includes('?') ? '&' : '?';
-  return `${baseUrl}${separator}medium=api`;
+  return `${baseUrl}${separator}pid=P00103649&medium=api`;
 }
