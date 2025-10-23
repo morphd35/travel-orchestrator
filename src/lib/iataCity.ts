@@ -114,11 +114,11 @@ export const IATA_TO_CITY: Record<string, string> = {
 
 /**
  * Get city name from IATA code
- * Falls back to the IATA code itself if not found
+ * Returns empty string if not found (to trigger proper error handling)
  */
 export function getCityFromIATA(iataCode: string): string {
   const upperCode = iataCode.toUpperCase();
-  return IATA_TO_CITY[upperCode] || upperCode;
+  return IATA_TO_CITY[upperCode] || '';
 }
 
 /**
