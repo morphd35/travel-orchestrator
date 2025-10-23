@@ -7,9 +7,6 @@ export function bookingCityDeeplink(
   checkin: string,
   checkout: string
 ): string {
-  // Safe to access NEXT_PUBLIC_ vars on client
-  const aid = process.env.NEXT_PUBLIC_BOOKING_AID || '1234567';
-  
   // Validate city name - must not be empty or just an IATA code
   if (!city || city.trim().length === 0) {
     console.error('❌ Booking.com deeplink error: city is empty');
@@ -21,15 +18,21 @@ export function bookingCityDeeplink(
     console.warn(`⚠️ Booking.com deeplink warning: city "${city}" looks like an IATA code, not a city name`);
   }
   
-  const params = new URLSearchParams({
-    aid,
+  // Build params - only include affiliate ID if it's a real one (not test ID)
+  const aid = process.env.NEXT_PUBLIC_BOOKING_AID;
+  const params: Record<string, string> = {
     ss: city.trim(),
     checkin,
     checkout,
     group_adults: '2',
     no_rooms: '1',
     selected_currency: 'USD',
-  });
+  };
   
-  return `https://www.booking.com/searchresults.html?${params.toString()}`;
+  // Only add affiliate ID if provided and not the test ID
+  if (aid && aid !== '1234567') {
+    params.aid = aid;
+  }
+  
+  return `https://www.booking.com/searchresults.html?${new URLSearchParams(params).toString()}`;
 }
