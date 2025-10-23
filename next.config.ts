@@ -1,14 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Allow dev origins for Emergent preview
-  experimental: {
-    allowedDevOrigins: [
-      'trip-maestro.preview.emergentagent.com',
-      '*.preview.emergentagent.com',
-    ],
-  },
-  
   async headers() {
     return [
       {
