@@ -168,7 +168,9 @@ export default function Home() {
         };
       });
 
-      // Fetch activities if requested
+      setResults(packages);
+
+      // Fetch activities if requested (don't block main results)
       if (payload.includeActivities && flights.length > 0) {
         try {
           const activitiesRes = await fetch(apiPath('/api/providers/viator/search'), {
@@ -184,18 +186,15 @@ export default function Home() {
 
           if (activitiesRes.ok) {
             const activitiesData = await activitiesRes.json();
-            // Store activities separately or attach to packages
-            if (activitiesData.activities && activitiesData.activities.length > 0) {
-              console.log('Activities found:', activitiesData.activities.length);
-            }
+            setActivities(activitiesData.activities || []);
           }
         } catch (activityError) {
           console.warn('Failed to fetch activities:', activityError);
-          // Don't fail the whole search if activities fail
+          setActivities([]);
         }
+      } else {
+        setActivities([]);
       }
-
-      setResults(packages);
     } catch (e: any) {
       // Provide user-friendly error messages
       if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
