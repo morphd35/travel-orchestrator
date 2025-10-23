@@ -10,9 +10,20 @@ export function bookingCityDeeplink(
   // Safe to access NEXT_PUBLIC_ vars on client
   const aid = process.env.NEXT_PUBLIC_BOOKING_AID || '1234567';
   
+  // Validate city name - must not be empty or just an IATA code
+  if (!city || city.trim().length === 0) {
+    console.error('❌ Booking.com deeplink error: city is empty');
+    throw new Error('City name is required for hotel search');
+  }
+  
+  // Warn if city looks like an IATA code (all caps, 3 letters)
+  if (city.length === 3 && city === city.toUpperCase()) {
+    console.warn(`⚠️ Booking.com deeplink warning: city "${city}" looks like an IATA code, not a city name`);
+  }
+  
   const params = new URLSearchParams({
     aid,
-    ss: city,
+    ss: city.trim(),
     checkin,
     checkout,
     group_adults: '2',
