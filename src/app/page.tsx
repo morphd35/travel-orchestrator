@@ -173,6 +173,7 @@ export default function Home() {
 
       // Fetch activities if requested (don't block main results)
       if (payload.includeActivities && flights.length > 0) {
+        console.log('🎯 Fetching activities for:', getCityFromIATA(normalizedDestination));
         try {
           const activitiesRes = await fetch(apiPath('/api/providers/viator/search'), {
             method: 'POST',
@@ -187,13 +188,22 @@ export default function Home() {
 
           if (activitiesRes.ok) {
             const activitiesData = await activitiesRes.json();
+            console.log('✅ Activities received:', activitiesData.activities?.length || 0);
             setActivities(activitiesData.activities || []);
+            
+            if (activitiesData.message) {
+              console.log('ℹ️ Viator message:', activitiesData.message);
+            }
+          } else {
+            console.error('❌ Activities API error:', activitiesRes.status);
+            setActivities([]);
           }
         } catch (activityError) {
-          console.warn('Failed to fetch activities:', activityError);
+          console.error('❌ Failed to fetch activities:', activityError);
           setActivities([]);
         }
       } else {
+        console.log('ℹ️ Activities not requested or no flights found');
         setActivities([]);
       }
     } catch (e: any) {
