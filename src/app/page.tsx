@@ -244,50 +244,44 @@ export default function Home() {
         <div className="max-w-4xl mx-auto mb-12">
           <form action={onSubmit} className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
             <div className="p-6 lg:p-8 space-y-6">
-              {/* Location Inputs */}
+              {/* Location Inputs with Autocomplete */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-slate-700">
                     From
                   </label>
-                  <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <AirportAutocomplete
+                    name="origin"
+                    placeholder="Dallas, Los Angeles, New York..."
+                    required
+                    value={originIATA}
+                    onChange={(iata, display) => setOriginIATA(iata)}
+                    icon={
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                    </div>
-                    <input
-                      name="origin"
-                      type="text"
-                      placeholder="LAX, JFK, SFO..."
-                      maxLength={3}
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all uppercase"
-                      required
-                    />
-                  </div>
+                    }
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-slate-700">
                     To
                   </label>
-                  <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <AirportAutocomplete
+                    name="destination"
+                    placeholder="Rome, Paris, Tokyo..."
+                    required
+                    value={destinationIATA}
+                    onChange={(iata, display) => setDestinationIATA(iata)}
+                    icon={
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                    </div>
-                    <input
-                      name="destination"
-                      type="text"
-                      placeholder="LHR, CDG, NRT..."
-                      maxLength={3}
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all uppercase"
-                      required
-                    />
-                  </div>
+                    }
+                  />
                 </div>
               </div>
 
