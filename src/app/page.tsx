@@ -59,6 +59,9 @@ export default function Home() {
       budgetUsd: formData.get('budgetUsd') ? Number(formData.get('budgetUsd')) : undefined,
     };
 
+    // Store search params for use in results
+    setSearchParams(payload);
+
     // Validate dates
     if (new Date(payload.startDate) >= new Date(payload.endDate)) {
       setError('Return date must be after departure date');
