@@ -516,12 +516,12 @@ export default function Home() {
 
                     {/* Action Buttons */}
                     <div className="flex flex-col sm:flex-row gap-3">
-                      {r.components.hotel && (
+                      {r.components.hotel && searchParams && (
                         <a
                           href={bookingCityDeeplink(
-                            getCityFromIATA(endDate ? startDate.split('-')[0] + destination : destination),
-                            startDate,
-                            endDate
+                            getCityFromIATA(searchParams.destination),
+                            searchParams.startDate,
+                            searchParams.endDate
                           )}
                           target="_blank"
                           rel="noopener noreferrer"
