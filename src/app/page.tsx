@@ -289,11 +289,14 @@ export default function Home() {
                     From
                   </label>
                   <AirportAutocomplete
-                    name="origin"
+                    name="origin_display"
                     placeholder="Dallas, Los Angeles, New York..."
                     required
                     value={originIATA}
-                    onChange={(iata, display) => setOriginIATA(iata)}
+                    onChange={(iata, display) => {
+                      console.log('Origin selected:', iata, display);
+                      setOriginIATA(iata);
+                    }}
                     icon={
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -301,6 +304,8 @@ export default function Home() {
                       </svg>
                     }
                   />
+                  {/* Hidden input for actual IATA code */}
+                  <input type="hidden" name="origin" value={originIATA} />
                 </div>
 
                 <div className="space-y-2">
@@ -308,11 +313,14 @@ export default function Home() {
                     To
                   </label>
                   <AirportAutocomplete
-                    name="destination"
+                    name="destination_display"
                     placeholder="Rome, Paris, Tokyo..."
                     required
                     value={destinationIATA}
-                    onChange={(iata, display) => setDestinationIATA(iata)}
+                    onChange={(iata, display) => {
+                      console.log('Destination selected:', iata, display);
+                      setDestinationIATA(iata);
+                    }}
                     icon={
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -320,6 +328,8 @@ export default function Home() {
                       </svg>
                     }
                   />
+                  {/* Hidden input for actual IATA code */}
+                  <input type="hidden" name="destination" value={destinationIATA} />
                 </div>
               </div>
 
