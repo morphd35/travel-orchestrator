@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Watch Manager - Travel Orchestrator</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 0; margin: 0; background: #f5f6fa; }
+        .nav { background: white; border-bottom: 1px solid #e0e0e0; padding: 15px 20px; margin-bottom: 20px; }
+        .nav-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; }
+        .nav-links { display: flex; gap: 15px; }
+        .nav-links a { text-decoration: none; color: #666; font-size: 14px; }
+        .nav-links a.active { color: #007bff; font-weight: bold; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .watch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px; }
+        .watch-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .watch-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .route { font-size: 20px; font-weight: bold; color: #2c3e50; }
+        .price-target { font-size: 24px; color: #27ae60; font-weight: bold; }
+        .watch-details { margin: 15px 0; font-size: 14px; color: #666; }
+        .watch-details div { margin: 5px 0; }
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .status-active { background: #d4edda; color: #155724; }
+        .status-inactive { background: #f8d7da; color: #721c24; }
+        .button-group { display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap; }
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; text-decoration: none; display: inline-block; text-align: center; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn:hover { opacity: 0.8; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .edit-form { display: none; background: #f8f9fa; padding: 15px; border-radius: 4px; margin-top: 15px; border: 1px solid #ddd; }
+        .edit-form input, .edit-form select { width: 100%; padding: 6px; margin: 4px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .edit-form label { font-weight: bold; font-size: 12px; color: #333; display: block; margin-top: 8px; }
+        .trigger-result { margin-top: 10px; padding: 10px; border-radius: 4px; font-size: 12px; }
+        .trigger-success { background: #d4edda; color: #155724; }
+        .trigger-error { background: #f8d7da; color: #721c24; }
+        .trigger-noop { background: #fff3cd; color: #856404; }
+        .loading { text-align: center; padding: 40px; }
+        .no-watches { text-align: center; padding: 40px; color: #666; background: white; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="/" style="text-decoration: none; color: #007bff; font-weight: bold; font-size: 18px;">✈️ Travel Orchestrator</a>
+            <div class="nav-links">
+                <a href="/">🏠 Home</a>
+                <a href="/watch-manager.html" class="active">👁️ My Watches</a>
+                <a href="/test-watch.html">➕ Create Watch</a>
+                <a href="/test-amadeus.html">🔍 Flight Search</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div class="header">
+            <h1>✈️ Watch Manager</h1>
+            <p>Manage your flight price watches from both Edge and API systems</p>
+            <button class="btn btn-primary" onclick="loadWatches()">🔄 Refresh Watches</button>
+            <a href="/test-watch.html" class="btn btn-success">➕ Create New Watch</a>
+            <a href="/" class="btn btn-primary">🏠 Back to Home</a>
+        </div>
+        
+        <div id="watchesContainer">
+            <div class="loading">Loading watches from both systems...</div>
+        </div>
+    </div>
+
+    <script>
+        let watches = [];
+
+        async function loadWatches() {
+            const container = document.getElementById('watchesContainer');
+            container.innerHTML = '<div class="loading">Loading watches from both systems...</div>';
+            
+            try {
+                const [edgeResponse, apiResponse] = await Promise.allSettled([
+                    fetch('/edge/watch'),
+                    fetch('/api/price-watch')
+                ]);
+                
+                let edgeWatches = [];
+                let apiWatches = [];
+                
+                if (edgeResponse.status === 'fulfilled' && edgeResponse.value.ok) {
+                    edgeWatches = await edgeResponse.value.json();
+                    console.log('Edge watches:', edgeWatches);
+                    edgeWatches.forEach(watch => {
+                        watch.system = 'edge';
+                        watch.systemLabel = 'Edge System';
+                    });
+                }
+                
+                if (apiResponse.status === 'fulfilled' && apiResponse.value.ok) {
+                    const apiData = await apiResponse.value.json();
+                    console.log('API data:', apiData);
+                    if (apiData.watches && Array.isArray(apiData.watches)) {
+                        apiWatches = apiData.watches.map(watch => ({
+                            id: watch.id,
+                            origin: watch.route ? watch.route.split(' → ')[0] : 'N/A',
+                            destination: watch.route ? watch.route.split(' → ')[1] : 'N/A',
+                            start: new Date().toISOString().split('T')[0],
+                            end: watch.watchEndDate || 'N/A',
+                            cabin: 'ECONOMY',
+                            adults: 1,
+                            maxStops: 2,
+                            targetUsd: watch.targetPrice || 0,
+                            flexDays: 0,
+                            active: watch.isActive !== false,
+                            lastBestUsd: watch.baselinePrice,
+                            lastNotifiedUsd: null,
+                            createdAt: watch.createdAt || new Date().toISOString(),
+                            system: 'api',
+                            systemLabel: 'API System',
+                            currency: 'USD'
+                        }));
+                    }
+                }
+                
+                watches = [...edgeWatches, ...apiWatches];
+                console.log('All watches:', watches);
+                
+                if (watches.length === 0) {
+                    container.innerHTML = '<div class="no-watches"><h3>No watches found</h3><p>Create your first price watch!</p><a href="/test-watch.html" class="btn btn-success">Create First Watch</a></div>';
+                    return;
+                }
+                
+                renderWatches();
+                
+            } catch (error) {
+                console.error('Error loading watches:', error);
+                container.innerHTML = '<div class="no-watches"><h3>Error loading watches</h3><p>' + error.message + '</p><button class="btn btn-primary" onclick="loadWatches()">Try Again</button></div>';
+            }
+        }
+
+        function renderWatches() {
+            const container = document.getElementById('watchesContainer');
+            
+            const watchCards = watches.map(watch => {
+                return '<div class="watch-card" id="watch-' + watch.id + '">' +
+                    '<div class="watch-header">' +
+                        '<div class="route">' + watch.origin + ' → ' + watch.destination + '</div>' +
+                        '<div style="display: flex; gap: 8px; align-items: center;">' +
+                            '<span class="status-badge ' + (watch.active ? 'status-active' : 'status-inactive') + '">' +
+                                (watch.active ? 'Active' : 'Inactive') +
+                            '</span>' +
+                            '<span style="font-size: 10px; background: #e9ecef; color: #6c757d; padding: 2px 6px; border-radius: 8px;">' +
+                                watch.systemLabel +
+                            '</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="price-target">Target: $' + watch.targetUsd + '</div>' +
+                    '<div class="watch-details">' +
+                        '<div><strong>Dates:</strong> ' + watch.start + ' to ' + watch.end + '</div>' +
+                        '<div><strong>Cabin:</strong> ' + watch.cabin + ' • <strong>Adults:</strong> ' + watch.adults + ' • <strong>Max Stops:</strong> ' + watch.maxStops + '</div>' +
+                        '<div><strong>Flexibility:</strong> ±' + watch.flexDays + ' days</div>' +
+                        '<div><strong>Last Best:</strong> ' + (watch.lastBestUsd ? '$' + watch.lastBestUsd : 'Not checked') + '</div>' +
+                        '<div><strong>Last Notified:</strong> ' + (watch.lastNotifiedUsd ? '$' + watch.lastNotifiedUsd : 'Never') + '</div>' +
+                        '<div><strong>Created:</strong> ' + new Date(watch.createdAt).toLocaleDateString() + '</div>' +
+                        '<div><strong>System:</strong> ' + watch.systemLabel + '</div>' +
+                    '</div>' +
+                    '<div class="button-group">' +
+                        '<button class="btn btn-primary" onclick="triggerWatch(\'' + watch.id + '\', \'' + watch.system + '\')" ' + (watch.system === 'edge' ? '' : 'disabled title="Not available for API system watches"') + '>' +
+                            '🔍 ' + (watch.system === 'edge' ? 'Check Now' : 'Check N/A') +
+                        '</button>' +
+                        '<button class="btn btn-warning" onclick="toggleEdit(\'' + watch.id + '\')" ' + (watch.system === 'edge' ? '' : 'disabled title="Edit not available for API system watches"') + '>' +
+                            '✏️ Edit' +
+                        '</button>' +
+                        '<button class="btn btn-danger" onclick="deleteWatch(\'' + watch.id + '\', \'' + watch.system + '\')" ' + (watch.system === 'edge' ? '' : 'disabled title="Delete not available for API system watches"') + '>' +
+                            '🗑️ Delete' +
+                        '</button>' +
+                        '<button class="btn ' + (watch.active ? 'btn-warning' : 'btn-success') + '" onclick="toggleActive(\'' + watch.id + '\', \'' + watch.system + '\')" ' + (watch.system === 'edge' ? '' : 'disabled title="Toggle not available for API system watches"') + '>' +
+                            (watch.active ? '⏸️ Pause' : '▶️ Activate') +
+                        '</button>' +
+                        (watch.system === 'api' ? '<div style="font-size: 11px; color: #666; margin-top: 5px;">⚠️ API system watches are read-only</div>' : '') +
+                    '</div>' +
+                    '<div id="trigger-result-' + watch.id + '"></div>' +
+                '</div>';
+            }).join('');
+            
+            container.innerHTML = '<div class="watch-grid">' + watchCards + '</div>';
+        }
+
+        async function triggerWatch(watchId, system) {
+            if (system !== 'edge') {
+                alert('❌ Manual triggering is only available for Edge system watches');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('trigger-result-' + watchId);
+            const button = event.target;
+            
+            button.disabled = true;
+            button.innerHTML = '⏳ Checking...';
+            resultDiv.innerHTML = '<div style="color: #666; font-size: 12px;">Searching for flights...</div>';
+            
+            try {
+                const response = await fetch('/edge/watch/' + watchId + '/trigger', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                let resultClass = 'trigger-noop';
+                let resultText = '';
+                
+                if (result.action === 'NOTIFY') {
+                    resultClass = 'trigger-success';
+                    resultText = '🔔 NOTIFY: Found flight for $' + result.best.total + ' ' + result.best.currency;
+                    if (result.email && result.email.sent) {
+                        resultText += ' • Email sent (' + result.email.provider + ')';
+                    }
+                } else {
+                    resultText = '🔕 ' + result.action + ': ' + (result.reason || 'No notification needed');
+                    if (result.best) {
+                        resultText += ' • Best found: $' + result.best.total;
+                    }
+                }
+                
+                resultDiv.innerHTML = '<div class="trigger-result ' + resultClass + '">' + resultText + '</div>';
+                await loadWatches();
+                
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="trigger-result trigger-error">❌ Error: ' + error.message + '</div>';
+            } finally {
+                button.disabled = false;
+                button.innerHTML = '🔍 Check Now';
+            }
+        }
+
+        function toggleEdit(watchId) {
+            alert('Edit functionality coming soon for Edge system watches!');
+        }
+
+        async function deleteWatch(watchId, system) {
+            if (system !== 'edge') {
+                alert('❌ Delete is only available for Edge system watches');
+                return;
+            }
+            
+            const watch = watches.find(w => w.id === watchId);
+            if (!confirm('Delete the watch for ' + watch.origin + ' → ' + watch.destination + '?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/edge/watch?id=' + watchId, { method: 'DELETE' });
+                if (response.ok) {
+                    await loadWatches();
+                    alert('✅ Watch deleted successfully!');
+                } else {
+                    const error = await response.json();
+                    alert('❌ Delete failed: ' + error.error);
+                }
+            } catch (error) {
+                alert('❌ Delete failed: ' + error.message);
+            }
+        }
+
+        async function toggleActive(watchId, system) {
+            if (system !== 'edge') {
+                alert('❌ Status toggle is only available for Edge system watches');
+                return;
+            }
+            
+            const watch = watches.find(w => w.id === watchId);
+            try {
+                const response = await fetch('/edge/watch?id=' + watchId, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ active: !watch.active })
+                });
+                
+                if (response.ok) {
+                    await loadWatches();
+                } else {
+                    const error = await response.json();
+                    alert('❌ Status change failed: ' + error.error);
+                }
+            } catch (error) {
+                alert('❌ Status change failed: ' + error.message);
+            }
+        }
+
+        loadWatches();
+    </script>
+</body>
+</html>
+
+<!-- Updated: 2025-10-24 12:15:02 -->

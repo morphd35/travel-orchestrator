@@ -6,18 +6,18 @@ console.log('🧪 Testing watchStore functions directly\n');
 // Test 1: Create a watch
 console.log('1️⃣ Creating a watch...');
 const watchData = {
-  userId: 'anon',
-  origin: 'NYC',
-  destination: 'LAX',
-  start: '2025-12-01',
-  end: '2025-12-10',
-  cabin: 'ECONOMY',
-  maxStops: 1,
-  adults: 2,
-  currency: 'USD',
-  targetUsd: 350,
-  flexDays: 3,
-  active: true,
+    userId: 'anon',
+    origin: 'NYC',
+    destination: 'LAX',
+    start: '2025-12-01',
+    end: '2025-12-10',
+    cabin: 'ECONOMY',
+    maxStops: 1,
+    adults: 2,
+    currency: 'USD',
+    targetUsd: 350,
+    flexDays: 3,
+    active: true,
 };
 
 const watch1 = createWatch(watchData);
@@ -27,9 +27,9 @@ console.log('✅ Create watch successful!\n');
 // Test 2: Create another watch
 console.log('2️⃣ Creating another watch...');
 const watch2 = createWatch({
-  ...watchData,
-  destination: 'SFO',
-  targetUsd: 280,
+    ...watchData,
+    destination: 'SFO',
+    targetUsd: 280,
 });
 console.log('Created watch:', watch2);
 console.log('✅ Second watch created!\n');
@@ -39,7 +39,7 @@ console.log('3️⃣ Listing watches for user "anon"...');
 const watches = listWatches('anon');
 console.log('Found watches:', watches.length);
 watches.forEach((w, i) => {
-  console.log(`  ${i + 1}. ${w.origin} → ${w.destination} ($${w.targetUsd})`);
+    console.log(`  ${i + 1}. ${w.origin} → ${w.destination} ($${w.targetUsd})`);
 });
 console.log('✅ List watches successful!\n');
 

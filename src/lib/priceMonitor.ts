@@ -1,6 +1,7 @@
 import { priceWatchDB, PriceWatch } from '@/lib/priceWatch';
 import { flightCache } from '@/lib/cache';
 import { getCurrentFrequency, formatFrequencyDescription } from '@/lib/monitoringConfig';
+import { getAirlineName, getAirportName } from './airlineUtils';
 
 /**
  * Price Monitoring Service
@@ -66,7 +67,7 @@ ${watch.notes ? `📝 Your Notes: ${watch.notes}` : ''}
 Happy deal hunting! 🧳
 Your Travel Orchestrator Team
 
-P.S. You can manage your price watches anytime at http://localhost:3000/watch-manager.html
+P.S. You can manage your price watches anytime at http://localhost:3000/watches
     `.trim();
 
         const smsMessage = `🔔 Price watch activated for ${watch.title}! We'll monitor ${watch.origin}→${watch.destination} and notify you of price changes ≥$${watch.priceThreshold}. Happy deal hunting!`;
@@ -197,10 +198,14 @@ P.S. You can manage your price watches anytime at http://localhost:3000/watch-ma
 
         const subject = `${emoji} Flight Price ${changeType}: ${watch.title}`;
 
+        // Get user-friendly location names
+        const originCity = getAirportName(watch.origin);
+        const destinationCity = getAirportName(watch.destination);
+
         const emailBody = `
 ${emoji} Great news! The flight price for your watched route has ${isDecrease ? 'dropped' : 'increased'} significantly!
 
-✈️ Route: ${watch.origin} → ${watch.destination}
+✈️ Route: ${originCity} → ${destinationCity}
 📊 Price Change: $${oldPrice.toFixed(2)} → $${newPrice.toFixed(2)} (${priceChange > 0 ? '+' : ''}$${priceChange.toFixed(2)})
 ${isDecrease ? '🎯 This is a great time to book!' : '⏰ You might want to book soon if prices keep rising.'}
 

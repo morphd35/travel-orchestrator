@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { apiPath } from '@/lib/apiBase';
 import { getCityFromIATA, normalizeToIATA } from '@/lib/iataCity';
 import { bookingCityDeeplink } from '@/lib/booking';
 import AirportAutocomplete from '@/components/AirportAutocomplete';
 import PriceWatchModal from '@/components/PriceWatchModal';
+import { getAirlineName, getAirportName, AIRLINE_NAMES, formatStopsInfo } from '@/lib/airlineUtils';
 
 // Initialize price monitoring service
 import '@/lib/priceMonitor';
@@ -169,6 +171,8 @@ function parseDuration(isoDuration: string | undefined): string {
 }
 
 export default function Home() {
+  const urlParams = useSearchParams();
+  
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<PackageResult[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -196,6 +200,15 @@ export default function Home() {
   // Price watch modal
   const [priceWatchModalOpen, setPriceWatchModalOpen] = useState(false);
   const [selectedFlightForWatch, setSelectedFlightForWatch] = useState<PackageResult | null>(null);
+
+  // Route watch modal
+  const [routeWatchModalOpen, setRouteWatchModalOpen] = useState(false);
+  const [watchTargetUsd, setWatchTargetUsd] = useState('');
+  const [watchEmail, setWatchEmail] = useState('');
+  const [watchCabin, setWatchCabin] = useState('ECONOMY');
+  const [watchMaxStops, setWatchMaxStops] = useState(1);
+  const [watchFlexDays, setWatchFlexDays] = useState(2);
+  const [watchCreating, setWatchCreating] = useState(false);
 
   // Ref for auto-scrolling to results
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -283,30 +296,23 @@ export default function Home() {
   }, [loading, results.length, error]);
 
   // Airline mapping - codes to full names and info
-  const airlineMap: Record<string, { name: string; quality: 'premium' | 'standard' | 'budget' }> = {
-    'AA': { name: 'American Airlines', quality: 'standard' },
-    'DL': { name: 'Delta Air Lines', quality: 'premium' },
-    'UA': { name: 'United Airlines', quality: 'standard' },
-    'B6': { name: 'JetBlue Airways', quality: 'standard' },
-    'WN': { name: 'Southwest Airlines', quality: 'standard' },
-    'AS': { name: 'Alaska Airlines', quality: 'standard' },
-    'F9': { name: 'Frontier Airlines', quality: 'budget' },
-    'NK': { name: 'Spirit Airlines', quality: 'budget' },
-    'AC': { name: 'Air Canada', quality: 'standard' },
-    'LH': { name: 'Lufthansa', quality: 'premium' },
-    'BA': { name: 'British Airways', quality: 'premium' },
-    'AF': { name: 'Air France', quality: 'premium' },
-    'KL': { name: 'KLM Royal Dutch Airlines', quality: 'premium' },
-    'VS': { name: 'Virgin Atlantic', quality: 'premium' },
-    'EK': { name: 'Emirates', quality: 'premium' },
-    'QR': { name: 'Qatar Airways', quality: 'premium' },
-    'G4': { name: 'Allegiant Air', quality: 'budget' },
-    '9X': { name: 'Southern Airways Express', quality: 'budget' },
-    'OO': { name: 'SkyWest Airlines', quality: 'standard' },
-    'YX': { name: 'Republic Airways', quality: 'standard' },
-    'MQ': { name: 'Envoy Air', quality: 'standard' },
-    'OH': { name: 'PSA Airlines', quality: 'standard' }
+  // Generate airline map with quality ratings using our comprehensive airline database
+  const getAirlineQuality = (code: string): 'premium' | 'standard' | 'budget' => {
+    const premiumCarriers = ['LH', 'BA', 'AF', 'KL', 'VS', 'EK', 'QR', 'EY', 'SQ', 'CX', 'JL', 'NH'];
+    const budgetCarriers = ['F9', 'NK', 'G4', 'FR', 'U2', 'VY', 'W6'];
+    
+    if (premiumCarriers.includes(code)) return 'premium';
+    if (budgetCarriers.includes(code)) return 'budget';
+    return 'standard';
   };
+
+  const airlineMap: Record<string, { name: string; quality: 'premium' | 'standard' | 'budget' }> = 
+    Object.fromEntries(
+      Object.entries(AIRLINE_NAMES).map(([code, name]) => [
+        code,
+        { name, quality: getAirlineQuality(code) }
+      ])
+    );
 
   // Aircraft types
   const aircraftTypes = [
@@ -360,11 +366,117 @@ export default function Home() {
     images?: Array<{ url: string }>;
   }>>([]);
 
+  // Handle URL parameters from email deeplinks
+  useEffect(() => {
+    if (urlParams) {
+      const origin = urlParams.get('o');
+      const destination = urlParams.get('d');
+      const departDate = urlParams.get('ds');
+      const returnDate = urlParams.get('rs');
+      
+      if (origin) {
+        setOriginIATA(origin);
+      }
+      if (destination) {
+        setDestinationIATA(destination);
+      }
+      if (departDate) {
+        setStartDate(departDate);
+      }
+      if (returnDate) {
+        setEndDate(returnDate);
+      }
+      
+      // If we have all required params, automatically trigger search
+      if (origin && destination && departDate) {
+        console.log(`🔗 Pre-filling form from email link: ${origin} → ${destination} on ${departDate}`);
+        
+        // Small delay to ensure state is set before triggering search
+        setTimeout(() => {
+          const searchButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+          if (searchButton && !searchButton.disabled) {
+            console.log('🔍 Auto-triggering search from email deeplink');
+            searchButton.click();
+          }
+        }, 1000);
+      }
+    }
+  }, [urlParams]);
+
   // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().split('T')[0];
 
   // Calculate minimum end date (day after start date)
   const minEndDate = startDate ? new Date(new Date(startDate).getTime() + 86400000).toISOString().split('T')[0] : today;
+
+  // Create a route watch
+  async function createRouteWatch() {
+    if (!originIATA || !destinationIATA || !startDate || !endDate || !watchTargetUsd || !watchEmail) {
+      alert('Please fill in all required fields including destination, dates, target price, and email.');
+      return;
+    }
+
+    // Basic email validation
+    if (!watchEmail.includes('@')) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+
+    const targetPrice = parseFloat(watchTargetUsd);
+    if (isNaN(targetPrice) || targetPrice <= 0) {
+      alert('Please enter a valid target price.');
+      return;
+    }
+
+    setWatchCreating(true);
+
+    try {
+      const watchData = {
+        origin: originIATA.toUpperCase(),
+        destination: destinationIATA.toUpperCase(),
+        start: startDate,
+        end: endDate,
+        targetUsd: targetPrice,
+        cabin: watchCabin,
+        maxStops: watchMaxStops,
+        flexDays: watchFlexDays,
+        adults: adults + seniors, // Combine adults and seniors
+        currency: 'USD',
+        active: true,
+        email: watchEmail
+      };
+
+      const response = await fetch('/edge/watch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(watchData)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create watch');
+      }
+
+      const result = await response.json();
+      
+      // Show success message
+      alert(`✅ Watching! We'll email you on drops.\n\nWatch ID: ${result.id}\nRoute: ${getAirportName(result.origin)} → ${getAirportName(result.destination)}\nTarget: $${result.targetUsd}`);
+      
+      // Close modal and reset form
+      setRouteWatchModalOpen(false);
+      setWatchTargetUsd('');
+      setWatchEmail('');
+      setWatchCabin('ECONOMY');
+      setWatchMaxStops(1);
+      setWatchFlexDays(2);
+
+    } catch (error: any) {
+      console.error('Failed to create watch:', error);
+      alert('❌ Failed to create watch: ' + error.message);
+    } finally {
+      setWatchCreating(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -445,29 +557,9 @@ export default function Home() {
         // If Amadeus fails, show error but don't crash
         const errorText = await flightRes.text().catch(() => '');
         console.error('Flight search error:', errorText);
-        setError('Unable to fetch flight data. Showing limited results.');
-
-        // Show minimal mock results as fallback - include hotel if requested
-        setResults([
-          {
-            id: 'fallback_1',
-            summary: `${payload.origin} → ${payload.destination}, ${payload.startDate}–${payload.endDate}${payload.includeHotel ? ', Hotel' : ''}`,
-            total: 500 + (payload.includeHotel ? 1050 : 0), // 7 nights * $150
-            components: {
-              flight: {
-                carrier: 'DL',
-                carrierName: 'Delta Air Lines',
-                flightNumber: 'DL1567',
-                departureTime: '10:15 AM',
-                arrivalTime: '1:45 PM',
-                duration: '3h 30m',
-                stops: 0,
-                aircraft: 'Boeing 737-800',
-              },
-              hotel: payload.includeHotel ? { name: 'Hotels Available' } : undefined,
-            },
-          },
-        ]);
+        setError('Unable to fetch flight data from Amadeus. Please try again later.');
+        setResults([]);
+        setLoading(false);
         return;
       }
 
@@ -475,7 +567,7 @@ export default function Home() {
       const flights = flightData.results || [];
 
       if (flights.length === 0) {
-        setError('No flights found for this route. Try different dates or locations.');
+        setError('No flights found from Amadeus for this route. Note: American Airlines, Delta, and some low-cost carriers are currently unavailable in the Amadeus test API. Try different dates, destinations, or check back later.');
         setLoading(false);
         return;
       }
@@ -523,7 +615,7 @@ export default function Home() {
 
         return {
           id: `pkg_${flight.id || index}`,
-          summary: `${payload.origin} → ${payload.destination}, ${payload.startDate}–${payload.endDate} • ${totalTravelers} traveler${totalTravelers !== 1 ? 's' : ''}${payload.includeHotel ? ', Hotel' : ''}${payload.includeCar ? ', Car' : ''}`,
+          summary: `${getAirportName(payload.origin)} → ${getAirportName(payload.destination)}, ${payload.startDate}–${payload.endDate} • ${totalTravelers} traveler${totalTravelers !== 1 ? 's' : ''}${payload.includeHotel ? ', Hotel' : ''}${payload.includeCar ? ', Car' : ''}`,
           total: Math.round(totalPrice * 100) / 100,
           components: {
             flight: {
@@ -596,26 +688,8 @@ export default function Home() {
       }
       console.error('Search error:', e);
 
-      // Show fallback results even on error
-      setResults([
-        {
-          id: 'fallback_1',
-          summary: `${payload.origin} → ${payload.destination}, ${payload.startDate}–${payload.endDate}`,
-          total: 500,
-          components: {
-            flight: {
-              carrier: 'AA',
-              carrierName: 'American Airlines',
-              flightNumber: 'AA1234',
-              departureTime: '9:00 AM',
-              arrivalTime: '12:30 PM',
-              duration: '3h 30m',
-              stops: 0,
-              aircraft: 'Boeing 737-800',
-            },
-          },
-        },
-      ]);
+      // No fallback results - only show real Amadeus data
+      setResults([]);
     } finally {
       setLoading(false);
     }
@@ -645,23 +719,13 @@ export default function Home() {
               {/* Navigation Links */}
               <div className="hidden md:flex items-center gap-3">
                 <a
-                  href="/watch-manager.html"
+                  href="/watches"
                   className="text-slate-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   👁️ My Watches
                 </a>
-                <a
-                  href="/test-watch.html"
-                  className="text-slate-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                >
-                  ➕ Create Watch
-                </a>
-                <a
-                  href="/test-amadeus.html"
-                  className="text-slate-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                >
-                  🔍 Flight Search
-                </a>
+
+
               </div>
               <span className="hidden sm:inline-flex px-3 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
                 Beta Access
@@ -987,8 +1051,8 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Submit Button */}
-            <div className="px-6 lg:px-8 pb-6 lg:pb-8">
+            {/* Submit Buttons */}
+            <div className="px-6 lg:px-8 pb-6 lg:pb-8 space-y-4">
               <button
                 type="submit"
                 disabled={loading}
@@ -1008,6 +1072,24 @@ export default function Home() {
                   </>
                 )}
               </button>
+
+              <button
+                type="button"
+                onClick={() => setRouteWatchModalOpen(true)}
+                disabled={!originIATA || !destinationIATA || !startDate || !endDate}
+                className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold py-3 px-6 rounded-xl shadow-md hover:shadow-lg hover:from-amber-600 hover:to-orange-600 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span>Watch This Route</span>
+              </button>
+              
+              {(!originIATA || !destinationIATA || !startDate || !endDate) && (
+                <p className="text-xs text-slate-500 text-center">
+                  Fill in destinations and dates to enable route watching
+                </p>
+              )}
             </div>
           </form>
         </div>
@@ -1213,9 +1295,7 @@ export default function Home() {
                                 <div className="text-right">
                                   <p className="text-sm font-semibold text-blue-900">{r.components.flight.duration}</p>
                                   <p className="text-xs text-blue-600">
-                                    {r.components.flight.stops === 0 ? 'Nonstop' :
-                                      r.components.flight.stops === 1 ? '1 stop' :
-                                        `${r.components.flight.stops} stops`}
+                                    {formatStopsInfo(r.components.flight.stops, r.components.flight.segments)}
                                   </p>
                                 </div>
                               </div>
@@ -1456,6 +1536,133 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* Route Watch Modal */}
+      {routeWatchModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 mx-4 max-w-md w-full">
+            <h3 className="text-xl font-bold text-slate-900 mb-4">Watch This Route</h3>
+            
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>{getAirportName(originIATA)} → {getAirportName(destinationIATA)}</strong>
+              </p>
+              <p className="text-xs text-blue-600">
+                {originIATA} → {destinationIATA} • {startDate} to {endDate} • {adults + seniors} adults
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Target Price (USD) *
+                </label>
+                <input
+                  type="number"
+                  value={watchTargetUsd}
+                  onChange={(e) => setWatchTargetUsd(e.target.value)}
+                  placeholder="e.g., 300"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  min="50"
+                  max="10000"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Email for Notifications *
+                </label>
+                <input
+                  type="email"
+                  value={watchEmail}
+                  onChange={(e) => setWatchEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  We'll send price alerts to this email address
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Cabin Class
+                </label>
+                <select
+                  value={watchCabin}
+                  onChange={(e) => setWatchCabin(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="ECONOMY">Economy</option>
+                  <option value="PREMIUM_ECONOMY">Premium Economy</option>
+                  <option value="BUSINESS">Business</option>
+                  <option value="FIRST">First Class</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Max Stops
+                  </label>
+                  <select
+                    value={watchMaxStops}
+                    onChange={(e) => setWatchMaxStops(parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value={0}>Nonstop only</option>
+                    <option value={1}>Up to 1 stop</option>
+                    <option value={2}>Up to 2 stops</option>
+                    <option value={3}>Up to 3 stops</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Flexibility
+                  </label>
+                  <select
+                    value={watchFlexDays}
+                    onChange={(e) => setWatchFlexDays(parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value={0}>Exact dates</option>
+                    <option value={1}>±1 day</option>
+                    <option value={2}>±2 days</option>
+                    <option value={3}>±3 days</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setRouteWatchModalOpen(false)}
+                disabled={watchCreating}
+                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createRouteWatch}
+                disabled={watchCreating || !watchTargetUsd}
+                className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold px-4 py-2 rounded-lg hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {watchCreating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Creating...</span>
+                  </>
+                ) : (
+                  <span>Create Watch</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Price Watch Modal */}
       {selectedFlightForWatch && (

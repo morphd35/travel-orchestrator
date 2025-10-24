@@ -21,14 +21,15 @@ const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN;
  * Send email via SendGrid (using official SDK)
  */
 async function sendViaSendGrid(payload: EmailPayload): Promise<EmailResponse> {
-    if (!SENDGRID_API_KEY) {
+    const apiKey = SENDGRID_API_KEY || process.env.SENDGRID_API_KEY;
+    if (!apiKey) {
         throw new Error('SENDGRID_API_KEY not configured');
     }
 
     try {
         // Import SendGrid SDK dynamically
         const sgMail = (await import('@sendgrid/mail')).default;
-        sgMail.setApiKey(SENDGRID_API_KEY);
+        sgMail.setApiKey(apiKey);
 
         const msg = {
             to: payload.to,
@@ -110,7 +111,9 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailResponse> {
     // Choose provider based on available environment variables
     let provider: 'sendgrid' | 'mailgun' | null = null;
 
-    if (SENDGRID_API_KEY) {
+
+
+    if (SENDGRID_API_KEY || process.env.SENDGRID_API_KEY) {
         provider = 'sendgrid';
     } else if (MAILGUN_API_KEY && MAILGUN_DOMAIN) {
         provider = 'mailgun';

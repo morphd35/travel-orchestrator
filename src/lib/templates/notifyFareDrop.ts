@@ -1,4 +1,5 @@
 // HTML email template for fare drop notifications
+import { getAirlineName, getAirportName, formatStopsInfo, getFlightRouting } from '../airlineUtils';
 
 interface FareEmailData {
     origin: string;
@@ -14,6 +15,7 @@ interface FareEmailData {
     };
     deeplinkUrl: string;
     targetPrice?: number;
+    segments?: any[]; // For detailed stop information
 }
 
 /**
@@ -30,14 +32,20 @@ export function renderFareEmail(data: FareEmailData): string {
         carrier,
         stops,
         deeplinkUrl,
-        targetPrice
+        targetPrice,
+        segments
     } = data;
 
     const tripType = returnDate ? 'Round-trip' : 'One-way';
-    const stopsText = stops.out === 0 ? 'Non-stop' : `${stops.out} stop${stops.out > 1 ? 's' : ''}`;
+    const stopsText = formatStopsInfo(stops.out, segments);
     const returnStopsText = returnDate && stops.back !== undefined
-        ? (stops.back === 0 ? 'Non-stop' : `${stops.back} stop${stops.back > 1 ? 's' : ''}`)
+        ? formatStopsInfo(stops.back)
         : null;
+    
+    // Get user-friendly names
+    const originCity = getAirportName(origin);
+    const destinationCity = getAirportName(destination);
+    const airlineName = getAirlineName(carrier);
 
     const formatDate = (dateStr: string): string => {
         const date = new Date(dateStr);
@@ -87,15 +95,17 @@ export function renderFareEmail(data: FareEmailData): string {
                 <!-- Route -->
                 <div style="display: flex; align-items: center; margin-bottom: 15px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
                     <div style="text-align: center; flex: 1;">
-                        <div style="font-size: 20px; font-weight: bold; color: #333;">${origin}</div>
+                        <div style="font-size: 20px; font-weight: bold; color: #333;">${originCity}</div>
+                        <div style="font-size: 12px; color: #666;">${origin}</div>
                         <div style="font-size: 12px; color: #666;">${formatDate(depart)}</div>
                     </div>
-                    <div style="flex: 0 0 60px; text-align: center; color: #666;">
+                    <div style="flex: 0 0 80px; text-align: center; color: #666;">
                         <div style="font-size: 18px;">✈️</div>
-                        <div style="font-size: 10px;">${carrier}</div>
+                        <div style="font-size: 10px;">${airlineName}</div>
                     </div>
                     <div style="text-align: center; flex: 1;">
-                        <div style="font-size: 20px; font-weight: bold; color: #333;">${destination}</div>
+                        <div style="font-size: 20px; font-weight: bold; color: #333;">${destinationCity}</div>
+                        <div style="font-size: 12px; color: #666;">${destination}</div>
                         ${returnDate ? `<div style="font-size: 12px; color: #666;">${formatDate(returnDate)}</div>` : ''}
                     </div>
                 </div>
@@ -104,7 +114,7 @@ export function renderFareEmail(data: FareEmailData): string {
                 <div style="display: flex; gap: 20px; margin-bottom: 20px;">
                     <div style="flex: 1; text-align: center; padding: 10px; background: #fff; border: 1px solid #e9ecef; border-radius: 4px;">
                         <div style="font-size: 12px; color: #666; text-transform: uppercase;">Airline</div>
-                        <div style="font-weight: bold; color: #333;">${carrier}</div>
+                        <div style="font-weight: bold; color: #333;">${airlineName}</div>
                     </div>
                     <div style="flex: 1; text-align: center; padding: 10px; background: #fff; border: 1px solid #e9ecef; border-radius: 4px;">
                         <div style="font-size: 12px; color: #666; text-transform: uppercase;">Outbound</div>
@@ -117,6 +127,18 @@ export function renderFareEmail(data: FareEmailData): string {
                     </div>
                     ` : ''}
                 </div>
+
+                ${getFlightRouting(segments) ? `
+                <!-- Detailed Routing -->
+                <div style="background: #f8f9fa; border-radius: 6px; padding: 15px; margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #495057; font-weight: 600;">Flight Route Details:</h4>
+                    <div style="font-family: monospace; font-size: 13px; color: #6c757d; line-height: 1.5;">
+                        ${originCity} (${origin})
+                        ${getFlightRouting(segments).split('\n').map(line => `   ${line}`).join('<br>')}
+                        ${destinationCity} (${destination})
+                    </div>
+                </div>
+                ` : ''}
             </div>
             
             <!-- CTA Button -->
@@ -140,7 +162,7 @@ export function renderFareEmail(data: FareEmailData): string {
         <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
             <p style="margin: 0; color: #666; font-size: 12px;">
                 Travel Orchestrator - Automated Flight Price Monitoring<br>
-                This alert was triggered by your price watch for ${origin} → ${destination}
+                This alert was triggered by your price watch for ${originCity} → ${destinationCity}
             </p>
         </div>
         
@@ -163,14 +185,20 @@ export function renderFareEmailText(data: FareEmailData): string {
         carrier,
         stops,
         deeplinkUrl,
-        targetPrice
+        targetPrice,
+        segments
     } = data;
 
     const tripType = returnDate ? 'Round-trip' : 'One-way';
-    const stopsText = stops.out === 0 ? 'Non-stop' : `${stops.out} stop${stops.out > 1 ? 's' : ''}`;
+    const stopsText = formatStopsInfo(stops.out, segments);
     const returnStopsText = returnDate && stops.back !== undefined
-        ? (stops.back === 0 ? 'Non-stop' : `${stops.back} stop${stops.back > 1 ? 's' : ''}`)
+        ? formatStopsInfo(stops.back)
         : null;
+    
+    // Get user-friendly names
+    const originCity = getAirportName(origin);
+    const destinationCity = getAirportName(destination);
+    const airlineName = getAirlineName(carrier);
 
     const savingsText = targetPrice && total < targetPrice
         ? `\n💰 ${currency} ${(targetPrice - total).toFixed(2)} below your target!\n`
@@ -184,10 +212,17 @@ Great news! We found a deal for you:
 ${currency} ${total.toFixed(2)} - ${tripType} flight${savingsText}
 
 FLIGHT DETAILS:
-Route: ${origin} → ${destination}
+Route: ${originCity} (${origin}) → ${destinationCity} (${destination})
 Depart: ${depart}${returnDate ? `\nReturn: ${returnDate}` : ''}
-Airline: ${carrier}
+Airline: ${airlineName}
 Outbound: ${stopsText}${returnStopsText ? `\nReturn: ${returnStopsText}` : ''}
+
+${getFlightRouting(segments) ? `FLIGHT ROUTE:
+${originCity} (${origin})
+${getFlightRouting(segments).split('\n').map(line => `   ${line}`).join('\n')}
+${destinationCity} (${destination})
+
+` : ''}
 
 VIEW FLIGHT DETAILS:
 ${deeplinkUrl}
@@ -196,6 +231,6 @@ ${deeplinkUrl}
 
 ---
 Travel Orchestrator - Automated Flight Price Monitoring
-This alert was triggered by your price watch for ${origin} → ${destination}
+This alert was triggered by your price watch for ${originCity} → ${destinationCity}
 `.trim();
 }

@@ -39,11 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
--e 
-# Environment files
-*.env
-*.env.*
--e 
+
+# database
+/data/
+
 # Environment files
 *.env
 *.env.*

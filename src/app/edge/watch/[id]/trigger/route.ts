@@ -232,18 +232,20 @@ export async function POST(
 
             // Send email notification
             try {
-                const notifyTo = process.env.NOTIFY_TO;
+                // Use user's email if provided, otherwise fallback to NOTIFY_TO for admin watches
+                const notifyTo = watch.email || process.env.NOTIFY_TO;
                 if (notifyTo) {
-                    // Build deeplink URL
+                    // Build deeplink URL - use correct port 3000 for development
                     const baseUrl = process.env.VERCEL_URL
                         ? `https://${process.env.VERCEL_URL}`
                         : process.env.NODE_ENV === 'production'
                             ? 'https://travel-orchestrator.vercel.app'
-                            : 'http://localhost:3010';
+                            : 'http://localhost:3000';
 
                     const deeplinkUrl = `${baseUrl}/?o=${encodeURIComponent(watch.origin)}&d=${encodeURIComponent(watch.destination)}&ds=${bestDates.depart}${bestDates.return ? `&rs=${bestDates.return}` : ''}`;
 
-                    // Prepare email data
+                    // Prepare email data with segment details from raw flight data
+                    const segments = bestFlight.raw?.itineraries?.[0]?.segments || [];
                     const emailData = {
                         origin: watch.origin,
                         destination: watch.destination,
@@ -258,6 +260,7 @@ export async function POST(
                         },
                         deeplinkUrl,
                         targetPrice: watch.targetUsd,
+                        segments: segments, // Include segment details for detailed stop information
                     };
 
                     // Send email

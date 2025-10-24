@@ -279,62 +279,8 @@ export async function POST(req: NextRequest) {
 
         console.log(`✈️ Total unique flights after all searches: ${uniqueOffers.length} from ${finalCarriers.length} airlines: ${finalCarriers.join(', ')}`);
 
-        // If we still have limited diversity, supplement with realistic mock flights for major routes
-        if (finalCarriers.length < 4 && (originLocationCode === 'DFW' && destinationLocationCode === 'ORD')) {
-            console.log('🔄 Supplementing with realistic mock flights for major airlines...');
-
-            const mockAirlines = ['AA', 'DL', 'WN', 'NK'];
-            const basePrice = uniqueOffers.length > 0 ?
-                Math.min(...uniqueOffers.map((o: any) => parseFloat(o.price?.total || '500'))) : 400;
-
-            mockAirlines.forEach((carrier, index) => {
-                if (!finalCarriers.includes(carrier)) {
-                    // Create realistic mock flights
-                    const mockFlights = Array.from({ length: 3 }, (_, i) => {
-                        const depHour = (8 + i * 2) % 24;
-                        const depMinute = Math.floor(Math.random() * 4) * 15;
-                        const arrHour = (depHour + 2 + Math.floor(Math.random() * 2)) % 24;
-                        const arrMinute = (depMinute + Math.floor(Math.random() * 4) * 15) % 60;
-
-                        const departureTime = `${departureDate}T${depHour.toString().padStart(2, '0')}:${depMinute.toString().padStart(2, '0')}:00`;
-                        const arrivalTime = `${departureDate}T${arrHour.toString().padStart(2, '0')}:${arrMinute.toString().padStart(2, '0')}:00`;
-
-                        return {
-                            id: `mock_${carrier}_${i + 1}`,
-                            price: {
-                                currency: currencyCode,
-                                total: (basePrice + (index * 50) + (i * 20)).toFixed(2),
-                                base: (basePrice + (index * 50) + (i * 20) - 50).toFixed(2),
-                                fees: [],
-                                grandTotal: (basePrice + (index * 50) + (i * 20)).toFixed(2)
-                            },
-                            validatingAirlineCodes: [carrier],
-                            itineraries: [{
-                                duration: `PT${2 + Math.floor(Math.random() * 2)}H${15 + Math.floor(Math.random() * 45)}M`,
-                                segments: [{
-                                    departure: {
-                                        iataCode: originLocationCode,
-                                        at: departureTime
-                                    },
-                                    arrival: {
-                                        iataCode: destinationLocationCode,
-                                        at: arrivalTime
-                                    },
-                                    carrierCode: carrier,
-                                    number: `${Math.floor(Math.random() * 8000) + 1000}`,
-                                    aircraft: { code: 'B38M' }
-                                }]
-                            }],
-                            _isMockData: true
-                        };
-                    });
-
-                    uniqueOffers.push(...mockFlights);
-                    finalCarriers.push(carrier);
-                    console.log(`🔄 Added ${mockFlights.length} mock flights for ${carrier}`);
-                }
-            });
-        }
+        // Note: Only returning real Amadeus data - no mock flights
+        // American Airlines, Delta, and some low-cost carriers may not be available through Amadeus test API
 
         // Map results to simplified format
         const results = uniqueOffers?.map((offer: any) => {
