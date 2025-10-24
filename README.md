@@ -219,6 +219,97 @@ Check that:
 
 Activities are optional. If `VIATOR_API_KEY` is not set, mock activities are shown for popular destinations (Cancun, Cabo, Rome).
 
+## Automated Price Monitoring
+
+The system includes automated price watch sweeps that run all active watches to check for fare changes.
+
+### Sweep Endpoint
+
+**`POST /edge/watch/run`** - Runs all active price watches
+
+- Processes all active watches sequentially
+- Calls trigger functionality for each watch
+- Sends notifications for significant price drops
+- Returns summary with counts and results
+
+**Response format:**
+```json
+{
+  "success": true,
+  "summary": {
+    "total": 5,
+    "notified": 2,
+    "noop": 3,
+    "errors": 0
+  },
+  "timestamp": "2025-10-24T15:00:00.000Z",
+  "duration": 12500
+}
+```
+
+### Cron Worker Script
+
+Use the included cron worker to run sweeps on a schedule:
+
+```bash
+# Run manually
+ts-node scripts/cron-sweep.ts
+
+# Or if compiled to JavaScript
+node scripts/cron-sweep.js
+```
+
+**Environment Variables for Cron:**
+```env
+BASE_URL=https://your-domain.com  # Target URL for sweep endpoint
+```
+
+### Recommended Schedule
+
+Configure your scheduler (e.g., Emergent's cron) to run the sweep twice daily:
+
+**Schedule 1: Morning Check**
+- Time: `09:00 America/Chicago` (3:00 PM UTC)
+- Cron: `0 15 * * *`
+- Purpose: Catch overnight price changes
+
+**Schedule 2: Afternoon Check**  
+- Time: `16:00 America/Chicago` (10:00 PM UTC)
+- Cron: `0 22 * * *`
+- Purpose: Catch business day price adjustments
+
+**Example cron configuration:**
+```bash
+# Morning sweep at 9 AM CT
+0 15 * * * cd /path/to/travel-orchestrator && ts-node scripts/cron-sweep.ts
+
+# Afternoon sweep at 4 PM CT  
+0 22 * * * cd /path/to/travel-orchestrator && ts-node scripts/cron-sweep.ts
+```
+
+### Monitoring
+
+The cron script outputs structured JSON for easy monitoring:
+
+```json
+{
+  "success": true,
+  "summary": {
+    "total": 3,
+    "notified": 1,
+    "noop": 2,
+    "errors": 0
+  },
+  "timestamp": "2025-10-24T15:00:00.000Z",
+  "duration": 8500
+}
+```
+
+- **total**: Number of active watches processed
+- **notified**: Number of watches that triggered notifications
+- **noop**: Number of watches with no significant price change
+- **errors**: Number of watches that failed to process
+
 ## Learn More
 
 - [Next.js Documentation](https://nextjs.org/docs)

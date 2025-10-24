@@ -16,6 +16,7 @@ const CreateWatchSchema = z.object({
     targetUsd: z.number().positive(),
     flexDays: z.number().int().min(0).max(30),
     active: z.boolean().default(true),
+    email: z.string().email().optional(),
     lastBestUsd: z.number().optional(),
     lastNotifiedUsd: z.number().optional(),
 });

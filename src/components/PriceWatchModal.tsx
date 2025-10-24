@@ -40,27 +40,28 @@ export default function PriceWatchModal({ isOpen, onClose, flightInfo }: PriceWa
         setError(null);
 
         try {
-            const response = await fetch('/api/price-watch', {
+            // Convert to Edge system format
+            const startDate = flightInfo.departureDate || new Date().toISOString().split('T')[0];
+            const endDate = flightInfo.returnDate || new Date(Date.now() + watchDuration * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+            const response = await fetch('/edge/watch', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    origin: flightInfo.origin,
-                    destination: flightInfo.destination,
-                    departureDate: flightInfo.departureDate,
-                    returnDate: flightInfo.returnDate,
-                    adults: flightInfo.adults,
-                    children: flightInfo.children,
-                    seniors: flightInfo.seniors,
-                    watchDuration,
-                    priceThreshold,
-                    targetPrice,
-                    notificationType,
-                    email,
-                    phone,
-                    title,
-                    notes,
+                    origin: flightInfo.origin.toUpperCase(),
+                    destination: flightInfo.destination.toUpperCase(),
+                    start: startDate,
+                    end: endDate,
+                    targetUsd: targetPrice,
+                    cabin: 'ECONOMY',
+                    maxStops: 2,
+                    adults: flightInfo.adults + flightInfo.seniors,
+                    currency: 'USD',
+                    flexDays: 3,
+                    active: true,
+                    email: email || undefined
                 }),
             });
 
@@ -70,7 +71,7 @@ export default function PriceWatchModal({ isOpen, onClose, flightInfo }: PriceWa
             }
 
             const result = await response.json();
-            console.log('🔔 Price watch created:', result);
+            console.log('🔔 Edge watch created:', result);
             setSuccess(true);
 
             // Auto-close after 2 seconds
