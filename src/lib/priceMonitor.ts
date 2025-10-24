@@ -66,7 +66,7 @@ ${watch.notes ? `📝 Your Notes: ${watch.notes}` : ''}
 Happy deal hunting! 🧳
 Your Travel Orchestrator Team
 
-P.S. You can manage your price watches anytime in your account dashboard.
+P.S. You can manage your price watches anytime at http://localhost:3000/watch-manager.html
     `.trim();
 
         const smsMessage = `🔔 Price watch activated for ${watch.title}! We'll monitor ${watch.origin}→${watch.destination} and notify you of price changes ≥$${watch.priceThreshold}. Happy deal hunting!`;

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Email System Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+
+        .success {
+            border-left-color: #28a745;
+        }
+
+        .error {
+            border-left-color: #dc3545;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        input {
+            padding: 5px;
+            margin: 2px;
+            width: 250px;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 4px;
+            color: #856404;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>📧 Email System Test</h1>
+
+    <div class="warning">
+        <strong>⚠️ Setup Required:</strong><br>
+        1. Add your email to NOTIFY_TO in .env.local<br>
+        2. Configure either SENDGRID_API_KEY or MAILGUN_API_KEY + MAILGUN_DOMAIN<br>
+        3. If no email provider is configured, emails will be disabled (but won't cause errors)
+    </div>
+
+    <div class="test-section">
+        <h3>Email Configuration</h3>
+        <label>Test Recipient: <input type="email" id="testEmail" placeholder="your-email@example.com"></label>
+        <p><small>Leave blank to use NOTIFY_TO from environment</small></p>
+    </div>
+
+    <div class="test-section">
+        <h3>1. Simple Test Email</h3>
+        <button onclick="sendTestEmail()">Send Test Email</button>
+        <div id="testResult" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. Sample Fare Notification</h3>
+        <button onclick="sendFareEmail()">Send Sample Fare Email</button>
+        <div id="fareResult" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. Email Provider Status</h3>
+        <button onclick="checkEmailStatus()">Check Email Configuration</button>
+        <div id="statusResult" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        function getTestEmail() {
+            const email = document.getElementById('testEmail').value;
+            return email ? `?to=${encodeURIComponent(email)}` : '';
+        }
+
+        async function sendTestEmail() {
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Sending test email...';
+
+            try {
+                const response = await fetch(`/api/test-email?action=test${getTestEmail()}`);
+                const result = await response.json();
+
+                resultDiv.className = response.ok ? 'result success' : 'result error';
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <strong>✅ Test Email Sent!</strong><br>
+                        <strong>Recipient:</strong> ${result.recipient}<br>
+                        <strong>Provider:</strong> ${result.provider}<br>
+                        <strong>Message ID:</strong> ${result.messageId}<br>
+                        <strong>Status:</strong> ${result.message}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <strong>❌ Test Failed</strong><br>
+                        <strong>Error:</strong> ${result.error}<br>
+                        <strong>Message:</strong> ${result.message || 'N/A'}
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+
+        async function sendFareEmail() {
+            const resultDiv = document.getElementById('fareResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Sending sample fare notification...';
+
+            try {
+                const response = await fetch(`/api/test-email?action=fare${getTestEmail()}`);
+                const result = await response.json();
+
+                resultDiv.className = response.ok ? 'result success' : 'result error';
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <strong>✅ Fare Email Sent!</strong><br>
+                        <strong>Recipient:</strong> ${result.recipient}<br>
+                        <strong>Provider:</strong> ${result.provider}<br>
+                        <strong>Message ID:</strong> ${result.messageId}<br>
+                        <strong>Sample Route:</strong> ${result.sampleData.origin} → ${result.sampleData.destination}<br>
+                        <strong>Sample Price:</strong> $${result.sampleData.total} ${result.sampleData.currency}
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <strong>❌ Test Failed</strong><br>
+                        <strong>Error:</strong> ${result.error}<br>
+                        <strong>Message:</strong> ${result.message || 'N/A'}
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+
+        async function checkEmailStatus() {
+            const resultDiv = document.getElementById('statusResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Checking email configuration...';
+
+            // This will attempt to send to an invalid email to see what error we get
+            try {
+                const response = await fetch('/api/test-email?action=test&to=test@invalid-domain-that-does-not-exist.com');
+                const result = await response.json();
+
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>✅ Email Provider Active</strong><br>
+                        <strong>Provider:</strong> ${result.provider}<br>
+                        <strong>Status:</strong> Email system is working<br>
+                        <small>Note: Test email was sent to invalid address to check provider status</small>
+                    `;
+                } else {
+                    if (result.message && result.message.includes('email disabled')) {
+                        resultDiv.className = 'result warning';
+                        resultDiv.innerHTML = `
+                            <strong>⚠️ Email Disabled</strong><br>
+                            <strong>Reason:</strong> No email provider configured<br>
+                            <strong>Action:</strong> Add SENDGRID_API_KEY or MAILGUN_API_KEY to .env.local
+                        `;
+                    } else {
+                        resultDiv.className = 'result error';
+                        resultDiv.innerHTML = `
+                            <strong>❌ Configuration Error</strong><br>
+                            <strong>Error:</strong> ${result.error}<br>
+                            <strong>Message:</strong> ${result.message || 'N/A'}
+                        `;
+                    }
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -50,16 +50,16 @@ console.log('\\n🎉 All tests passed!');
 fs.writeFileSync('temp-test.ts', testCode);
 
 try {
-  // Compile and run using npx
-  console.log('Compiling and running TypeScript test...\n');
-  const output = execSync('npx tsx temp-test.ts', { encoding: 'utf8', cwd: __dirname });
-  console.log(output);
+    // Compile and run using npx
+    console.log('Compiling and running TypeScript test...\n');
+    const output = execSync('npx tsx temp-test.ts', { encoding: 'utf8', cwd: __dirname });
+    console.log(output);
 } catch (error) {
-  console.log('Output:', error.stdout?.toString() || '');
-  console.error('Error:', error.stderr?.toString() || '');
+    console.log('Output:', error.stdout?.toString() || '');
+    console.error('Error:', error.stderr?.toString() || '');
 } finally {
-  // Clean up
-  if (fs.existsSync('temp-test.ts')) {
-    fs.unlinkSync('temp-test.ts');
-  }
+    // Clean up
+    if (fs.existsSync('temp-test.ts')) {
+        fs.unlinkSync('temp-test.ts');
+    }
 }
