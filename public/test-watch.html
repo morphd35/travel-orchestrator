@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Watch API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin: 10px 0; padding: 10px; background: #f8f9fa; border-left: 4px solid #007bff; }
+        .success { border-left-color: #28a745; }
+        .error { border-left-color: #dc3545; }
+        pre { white-space: pre-wrap; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Watch API Test Page</h1>
+    
+    <div class="test-section">
+        <h3>1. Create Watch</h3>
+        <button onclick="testCreateWatch()">Test POST /edge/watch</button>
+        <div id="createResult" class="result" style="display:none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. List Watches</h3>
+        <button onclick="testListWatches()">Test GET /edge/watch</button>
+        <div id="listResult" class="result" style="display:none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. Trigger Watch</h3>
+        <input type="text" id="watchId" placeholder="Enter watch ID" style="width: 200px; padding: 5px;">
+        <button onclick="testTriggerWatch()">Test POST /edge/watch/[id]/trigger</button>
+        <div id="triggerResult" class="result" style="display:none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>4. Validation Test</h3>
+        <button onclick="testValidation()">Test Validation Error</button>
+        <div id="validationResult" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        let createdWatchId = null;
+
+        async function testCreateWatch() {
+            const resultDiv = document.getElementById('createResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch('/edge/watch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        origin: 'NYC',
+                        destination: 'LAX',
+                        start: '2025-12-01',
+                        end: '2025-12-10',
+                        cabin: 'ECONOMY',
+                        maxStops: 1,
+                        adults: 2,
+                        currency: 'USD',
+                        targetUsd: 350,
+                        flexDays: 3,
+                    }),
+                });
+                
+                const result = await response.json();
+                createdWatchId = result.id;
+                document.getElementById('watchId').value = createdWatchId || '';
+                
+                resultDiv.className = response.status === 201 ? 'result success' : 'result error';
+                resultDiv.innerHTML = `
+                    <strong>Status:</strong> ${response.status}<br>
+                    <strong>Response:</strong><br>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+
+        async function testListWatches() {
+            const resultDiv = document.getElementById('listResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch('/edge/watch');
+                const result = await response.json();
+                
+                resultDiv.className = response.status === 200 ? 'result success' : 'result error';
+                resultDiv.innerHTML = `
+                    <strong>Status:</strong> ${response.status}<br>
+                    <strong>Response:</strong><br>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+
+        async function testTriggerWatch() {
+            const watchId = document.getElementById('watchId').value;
+            const resultDiv = document.getElementById('triggerResult');
+            resultDiv.style.display = 'block';
+            
+            if (!watchId) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = '<strong>Error:</strong> Please enter a watch ID';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch(`/edge/watch/${watchId}/trigger`, {
+                    method: 'POST',
+                });
+                const result = await response.json();
+                
+                resultDiv.className = response.status === 501 ? 'result success' : 'result error';
+                resultDiv.innerHTML = `
+                    <strong>Status:</strong> ${response.status}<br>
+                    <strong>Response:</strong><br>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+
+        async function testValidation() {
+            const resultDiv = document.getElementById('validationResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch('/edge/watch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        origin: 'A', // Too short
+                        destination: 'LAX',
+                        start: '2025-12-01',
+                        end: '2025-12-10',
+                        cabin: 'INVALID_CABIN', // Invalid enum
+                        maxStops: 1,
+                        adults: 2,
+                        currency: 'USD',
+                        targetUsd: 350,
+                        flexDays: 3,
+                    }),
+                });
+                
+                const result = await response.json();
+                
+                resultDiv.className = response.status === 400 ? 'result success' : 'result error';
+                resultDiv.innerHTML = `
+                    <strong>Status:</strong> ${response.status}<br>
+                    <strong>Response:</strong><br>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

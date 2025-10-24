@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Amadeus Client Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin: 10px 0; padding: 10px; background: #f8f9fa; border-left: 4px solid #007bff; }
+        .success { border-left-color: #28a745; }
+        .error { border-left-color: #dc3545; }
+        pre { white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow-y: auto; }
+        input { padding: 5px; margin: 2px; }
+    </style>
+</head>
+<body>
+    <h1>✈️ Amadeus Client Test</h1>
+    
+    <div class="test-section">
+        <h3>Flight Search Parameters</h3>
+        <label>Origin: <input type="text" id="origin" value="NYC" maxlength="3"></label>
+        <label>Destination: <input type="text" id="destination" value="LAX" maxlength="3"></label>
+        <label>Depart Date: <input type="date" id="departDate" value="2025-12-01"></label>
+        <label>Return Date: <input type="date" id="returnDate"></label>
+        <label>Adults: <input type="number" id="adults" value="2" min="1" max="9"></label>
+        <label>Max Results: <input type="number" id="max" value="5" min="1" max="20"></label>
+    </div>
+    
+    <div class="test-section">
+        <h3>1. Flight Search (First Call)</h3>
+        <button onclick="testFirstCall()">Search Flights</button>
+        <div id="firstResult" class="result" style="display:none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. Flight Search (Second Call - Should Cache)</h3>
+        <button onclick="testSecondCall()">Search Again (Test Caching)</button>
+        <div id="secondResult" class="result" style="display:none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. Cache Statistics</h3>
+        <button onclick="getCacheStats()">Get Cache Stats</button>
+        <div id="statsResult" class="result" style="display:none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>4. Clear Cache</h3>
+        <button onclick="clearCache()">Clear All Caches</button>
+        <div id="clearResult" class="result" style="display:none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>5. Validation Test</h3>
+        <button onclick="testValidation()">Test Bad Parameters</button>
+        <div id="validationResult" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        let firstCallTime = 0;
+        let secondCallTime = 0;
+
+        function getParams() {
+            const params = new URLSearchParams();
+            params.append('origin', document.getElementById('origin').value);
+            params.append('destination', document.getElementById('destination').value);
+            params.append('departDate', document.getElementById('departDate').value);
+            
+            const returnDate = document.getElementById('returnDate').value;
+            if (returnDate) params.append('returnDate', returnDate);
+            
+            params.append('adults', document.getElementById('adults').value);
+            params.append('max', document.getElementById('max').value);
+            
+            return params;
+        }
+
+        async function testFirstCall() {
+            const resultDiv = document.getElementById('firstResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Testing first call...';
+            
+            try {
+                const start = Date.now();
+                const response = await fetch(`/api/test-amadeus?${getParams()}`);
+                firstCallTime = Date.now() - start;
+                const result = await response.json();
+                
+                resultDiv.className = response.ok ? 'result success' : 'result error';
+                resultDiv.innerHTML = `
+                    <strong>Status:</strong> ${response.status}<br>
+                    <strong>Duration:</strong> ${firstCallTime}ms<br>
+                    <strong>Results:</strong> ${result.resultsCount || 0} flights<br>
+                    <strong>Cache Size:</strong> ${result.cacheStats?.resultCacheSize || 0}<br>
+                    <strong>Response:</strong><br>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+
+        async function testSecondCall() {
+            const resultDiv = document.getElementById('secondResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Testing second call (should hit cache)...';
+            
+            try {
+                const start = Date.now();
+                const response = await fetch(`/api/test-amadeus?${getParams()}`);
+                secondCallTime = Date.now() - start;
+                const result = await response.json();
+                
+                const speedup = firstCallTime > 0 ? (firstCallTime / secondCallTime).toFixed(1) : 'N/A';
+                const cacheHit = secondCallTime < firstCallTime / 2;
+                
+                resultDiv.className = response.ok ? 'result success' : 'result error';
+                resultDiv.innerHTML = `
+                    <strong>Status:</strong> ${response.status}<br>
+                    <strong>Duration:</strong> ${secondCallTime}ms<br>
+                    <strong>Speedup:</strong> ${speedup}x faster<br>
+                    <strong>Cache Hit:</strong> ${cacheHit ? '✅ Likely cached!' : '⚠️ Not cached'}<br>
+                    <strong>Results:</strong> ${result.resultsCount || 0} flights<br>
+                    <strong>Cache Size:</strong> ${result.cacheStats?.resultCacheSize || 0}<br>
+                    <strong>Response:</strong><br>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+
+        async function getCacheStats() {
+            const resultDiv = document.getElementById('statsResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Getting cache stats...';
+            
+            try {
+                const response = await fetch('/api/test-amadeus?action=stats');
+                const result = await response.json();
+                
+                resultDiv.className = response.ok ? 'result success' : 'result error';
+                resultDiv.innerHTML = `
+                    <strong>Status:</strong> ${response.status}<br>
+                    <strong>Cache Stats:</strong><br>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+
+        async function clearCache() {
+            const resultDiv = document.getElementById('clearResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Clearing cache...';
+            
+            try {
+                const response = await fetch('/api/test-amadeus?action=clear');
+                const result = await response.json();
+                
+                resultDiv.className = response.ok ? 'result success' : 'result error';
+                resultDiv.innerHTML = `
+                    <strong>Status:</strong> ${response.status}<br>
+                    <strong>Response:</strong><br>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+
+        async function testValidation() {
+            const resultDiv = document.getElementById('validationResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = 'Testing validation with bad parameters...';
+            
+            try {
+                const response = await fetch('/api/test-amadeus?origin=XX&destination=YY&departDate=invalid');
+                const result = await response.json();
+                
+                resultDiv.className = response.status === 400 ? 'result success' : 'result error';
+                resultDiv.innerHTML = `
+                    <strong>Status:</strong> ${response.status}<br>
+                    <strong>Expected:</strong> 400 Bad Request<br>
+                    <strong>Response:</strong><br>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
