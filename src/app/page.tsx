@@ -437,7 +437,7 @@ export default function Home() {
           children: payload.travelers.children,
           infants: 0, // We can add this later if needed
           currencyCode: 'USD',
-          max: 20,
+          max: 50,
         }),
       });
 
@@ -642,6 +642,27 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              {/* Navigation Links */}
+              <div className="hidden md:flex items-center gap-3">
+                <a
+                  href="/watch-manager.html"
+                  className="text-slate-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  👁️ My Watches
+                </a>
+                <a
+                  href="/test-watch.html"
+                  className="text-slate-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  ➕ Create Watch
+                </a>
+                <a
+                  href="/test-amadeus.html"
+                  className="text-slate-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  🔍 Flight Search
+                </a>
+              </div>
               <span className="hidden sm:inline-flex px-3 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
                 Beta Access
               </span>
@@ -1094,8 +1115,8 @@ export default function Home() {
                             />
                             <span className="text-slate-700">{airlineInfo.name}</span>
                             <span className={`text-xs px-1.5 py-0.5 rounded ml-2 ${airlineInfo.quality === 'premium' ? 'bg-green-100 text-green-700' :
-                                airlineInfo.quality === 'budget' ? 'bg-orange-100 text-orange-700' :
-                                  'bg-blue-100 text-blue-700'
+                              airlineInfo.quality === 'budget' ? 'bg-orange-100 text-orange-700' :
+                                'bg-blue-100 text-blue-700'
                               }`}>
                               {airlineInfo.quality}
                             </span>

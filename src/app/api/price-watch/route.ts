@@ -53,8 +53,19 @@ export async function POST(req: NextRequest) {
         let baselinePrice: number | undefined;
         try {
             // This would typically fetch current price from Amadeus
-            // For now, we'll use a mock baseline
-            baselinePrice = 500 + Math.random() * 800; // Mock price between $500-$1300
+            // For now, we'll use a more realistic mock baseline based on route
+            const routeKey = `${origin.toLowerCase()}-${destination.toLowerCase()}`;
+
+            // Realistic price ranges for common domestic routes
+            const priceRanges: Record<string, [number, number]> = {
+                'dfw-ord': [250, 450], // Dallas to Chicago
+                'lax-jfk': [350, 650], // LA to NYC
+                'sfo-bos': [400, 700], // SF to Boston
+                'mia-sea': [450, 750], // Miami to Seattle
+            };
+
+            const [minPrice, maxPrice] = priceRanges[routeKey] || [300, 600]; // Default range
+            baselinePrice = Math.floor(minPrice + Math.random() * (maxPrice - minPrice));
         } catch (error) {
             console.log('Could not fetch baseline price:', error);
         }
@@ -145,6 +156,102 @@ export async function GET(req: NextRequest) {
         console.error('Get price watches error:', error);
         return NextResponse.json(
             { error: error.message || 'Failed to get price watches' },
+            { status: 500 }
+        );
+    }
+}
+
+export async function PATCH(req: NextRequest) {
+    try {
+        const { searchParams } = new URL(req.url);
+        const watchId = searchParams.get('id');
+
+        if (!watchId) {
+            return NextResponse.json(
+                { error: 'Watch ID is required' },
+                { status: 400 }
+            );
+        }
+
+        const updates = await req.json();
+        const updateSuccess = priceWatchDB.updateWatch(watchId, updates);
+
+        if (!updateSuccess) {
+            return NextResponse.json(
+                { error: 'Watch not found' },
+                { status: 404 }
+            );
+        }
+
+        // Get the updated watch to return it
+        const updatedWatch = priceWatchDB.getWatch(watchId);
+        if (!updatedWatch) {
+            return NextResponse.json(
+                { error: 'Watch not found after update' },
+                { status: 404 }
+            );
+        }
+
+        console.log(`🔄 Price watch updated: ${updatedWatch.title}`);
+
+        return NextResponse.json({
+            success: true,
+            watch: {
+                id: updatedWatch.id,
+                title: updatedWatch.title,
+                route: `${updatedWatch.origin} → ${updatedWatch.destination}`,
+                watchEndDate: updatedWatch.watchEndDate,
+                isActive: updatedWatch.isActive,
+                baselinePrice: updatedWatch.baselinePrice,
+                targetPrice: updatedWatch.targetPrice,
+                priceThreshold: updatedWatch.priceThreshold,
+                notificationType: updatedWatch.notificationType,
+                createdAt: updatedWatch.createdAt,
+                lastChecked: updatedWatch.lastChecked,
+            }
+        });
+
+    } catch (error: any) {
+        console.error('Update price watch error:', error);
+        return NextResponse.json(
+            { error: error.message || 'Failed to update price watch' },
+            { status: 500 }
+        );
+    }
+}
+
+export async function DELETE(req: NextRequest) {
+    try {
+        const { searchParams } = new URL(req.url);
+        const watchId = searchParams.get('id');
+
+        if (!watchId) {
+            return NextResponse.json(
+                { error: 'Watch ID is required' },
+                { status: 400 }
+            );
+        }
+
+        const deleted = priceWatchDB.deleteWatch(watchId);
+
+        if (!deleted) {
+            return NextResponse.json(
+                { error: 'Watch not found' },
+                { status: 404 }
+            );
+        }
+
+        console.log(`🗑️ Price watch deleted: ${watchId}`);
+
+        return NextResponse.json({
+            success: true,
+            message: 'Watch deleted successfully'
+        });
+
+    } catch (error: any) {
+        console.error('Delete price watch error:', error);
+        return NextResponse.json(
+            { error: error.message || 'Failed to delete price watch' },
             { status: 500 }
         );
     }
