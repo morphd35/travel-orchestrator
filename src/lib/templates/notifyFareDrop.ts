@@ -41,7 +41,7 @@ export function renderFareEmail(data: FareEmailData): string {
     const returnStopsText = returnDate && stops.back !== undefined
         ? formatStopsInfo(stops.back)
         : null;
-    
+
     // Get user-friendly names
     const originCity = getAirportName(origin);
     const destinationCity = getAirportName(destination);
@@ -141,10 +141,13 @@ export function renderFareEmail(data: FareEmailData): string {
                 ` : ''}
             </div>
             
-            <!-- CTA Button -->
+            <!-- CTA Buttons -->
             <div style="text-align: center; margin: 30px 0;">
-                <a href="${deeplinkUrl}" style="display: inline-block; background: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
-                    🔍 View Flight Details
+                <a href="${deeplinkUrl.replace('/?', '/book?')}" style="display: inline-block; background: #28a745; color: white; padding: 18px 35px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 18px; margin-right: 15px; box-shadow: 0 2px 4px rgba(40,167,69,0.3);">
+                    🎫 Book This Flight
+                </a>
+                <a href="${deeplinkUrl}" style="display: inline-block; background: #007bff; color: white; padding: 15px 25px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(0,123,255,0.3);">
+                    🔍 Search Similar
                 </a>
             </div>
             
@@ -161,7 +164,7 @@ export function renderFareEmail(data: FareEmailData): string {
         <!-- Footer -->
         <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
             <p style="margin: 0; color: #666; font-size: 12px;">
-                Travel Orchestrator - Automated Flight Price Monitoring<br>
+                Travel Conductor - Automated Flight Price Monitoring<br>
                 This alert was triggered by your price watch for ${originCity} → ${destinationCity}
             </p>
         </div>
@@ -194,7 +197,7 @@ export function renderFareEmailText(data: FareEmailData): string {
     const returnStopsText = returnDate && stops.back !== undefined
         ? formatStopsInfo(stops.back)
         : null;
-    
+
     // Get user-friendly names
     const originCity = getAirportName(origin);
     const destinationCity = getAirportName(destination);
@@ -230,7 +233,7 @@ ${deeplinkUrl}
 ⚠️ ACT FAST! Flight prices change frequently. This price was found at ${new Date().toLocaleString()} and may no longer be available.
 
 ---
-Travel Orchestrator - Automated Flight Price Monitoring
+Travel Conductor - Automated Flight Price Monitoring
 This alert was triggered by your price watch for ${originCity} → ${destinationCity}
 `.trim();
 }

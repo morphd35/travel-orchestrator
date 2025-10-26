@@ -1,8 +1,60 @@
 import { NextRequest } from 'next/server';
 import { getWatch, updateWatch } from '@/lib/watchStore';
-import { searchFlights, type NormalFlight } from '@/lib/amadeusClient';
+import { searchFlights, type NormalFlight, AmadeusRateLimitError, AmadeusProviderError } from '@/lib/amadeusClient';
 import { sendEmail } from '@/lib/notifier';
 import { renderFareEmail, renderFareEmailText } from '@/lib/templates/notifyFareDrop';
+
+// Flight search result with provider information
+interface FlightSearchResult {
+    flights: NormalFlight[];
+    provider: string;
+    sourceLink?: string;
+}
+
+// Search flights using the specified provider
+async function searchFlightsByProvider(
+    provider: "amadeus" | "skyscanner", 
+    searchParams: any
+): Promise<FlightSearchResult> {
+    switch (provider) {
+        case 'amadeus':
+            const flights = await searchFlights(searchParams);
+            return {
+                flights,
+                provider: 'amadeus',
+                sourceLink: generateAmadeusBookingLink(searchParams)
+            };
+        
+        case 'skyscanner':
+            // TODO: Implement Skyscanner API integration
+            console.log('🚧 Skyscanner provider not yet implemented, falling back to Amadeus');
+            const fallbackFlights = await searchFlights(searchParams);
+            return {
+                flights: fallbackFlights,
+                provider: 'amadeus', // Record actual provider used
+                sourceLink: generateAmadeusBookingLink(searchParams)
+            };
+        
+        default:
+            throw new Error(`Unsupported provider: ${provider}`);
+    }
+}
+
+// Generate booking link for Amadeus (redirect to airline website)
+function generateAmadeusBookingLink(params: any): string {
+    // For now, generate a generic search URL - when we have specific flight data,
+    // we can redirect to the specific airline's booking page
+    const searchParams = new URLSearchParams({
+        origin: params.origin,
+        destination: params.destination,
+        departure: params.departDate,
+        ...(params.returnDate && { return: params.returnDate }),
+        adults: params.adults.toString(),
+    });
+    
+    // Could redirect to Google Flights, Expedia, or the specific airline
+    return `https://www.google.com/travel/flights?${searchParams.toString()}`;
+}
 
 // Map cabin types to Amadeus travel class if needed
 function mapCabinToAmadeus(cabin: string): string {
@@ -137,9 +189,14 @@ export async function POST(
         let bestDates: { depart: string, return?: string } | null = null;
 
         // Search flights for each date combination
+        let hasRateLimitError = false;
+        let hasProviderError = false;
+        let usedProvider: string = watch.provider;
+        let sourceLink: string | undefined;
+
         for (const dates of dateCombinations) {
             try {
-                console.log(`🔎 Searching flights for ${dates.depart}` + (dates.return ? ` → ${dates.return}` : ' (one-way)'));
+                console.log(`🔎 Searching flights for ${dates.depart}` + (dates.return ? ` → ${dates.return}` : ' (one-way)') + ` using ${watch.provider} provider`);
 
                 const searchParams = {
                     origin: watch.origin,
@@ -151,7 +208,12 @@ export async function POST(
                     max: 20 // Get more results to find best options
                 };
 
-                const flights = await searchFlights(searchParams);
+                const searchResult = await searchFlightsByProvider(watch.provider, searchParams);
+                const flights = searchResult.flights;
+                
+                // Update tracking variables
+                usedProvider = searchResult.provider;
+                sourceLink = searchResult.sourceLink;
 
                 // Filter by maxStops
                 const validFlights = flights.filter(flight => {
@@ -171,9 +233,40 @@ export async function POST(
                 }
 
             } catch (error) {
-                console.warn(`⚠️ Failed to search flights for ${dates.depart}:`, error);
-                // Continue with other dates
+                if (error instanceof AmadeusRateLimitError) {
+                    console.warn(`⚠️ Rate limit hit for ${dates.depart}:`, error.message);
+                    hasRateLimitError = true;
+                    break; // Stop searching if rate limited
+                } else if (error instanceof AmadeusProviderError) {
+                    console.warn(`⚠️ Provider error for ${dates.depart}:`, error.message);
+                    hasProviderError = true;
+                    // Continue with other dates in case it's transient
+                } else {
+                    console.warn(`⚠️ Failed to search flights for ${dates.depart}:`, error);
+                    // Continue with other dates
+                }
             }
+        }
+
+        // Handle rate limit or provider errors
+        if (hasRateLimitError && !bestFlight) {
+            console.log('❌ Rate limit exceeded, no flights found');
+            return Response.json({
+                action: 'NOOP',
+                reason: 'rate_limited',
+                watchId: id,
+                searchedCombinations: dateCombinations.length
+            });
+        }
+
+        if (hasProviderError && !bestFlight) {
+            console.log('❌ Provider errors occurred, no flights found');
+            return Response.json({
+                action: 'NOOP',
+                reason: 'provider_error',
+                watchId: id,
+                searchedCombinations: dateCombinations.length
+            });
         }
 
         // Handle no results
@@ -187,11 +280,13 @@ export async function POST(
             });
         }
 
-        console.log(`💰 Best flight found: $${bestFlight.total} ${bestFlight.currency} (${bestFlight.carrier})`);
+        console.log(`💰 Best flight found: $${bestFlight.total} ${bestFlight.currency} (${bestFlight.carrier}) via ${usedProvider}`);
 
-        // Update watch with best price
+        // Update watch with best price and provider information
         const updatedWatch = updateWatch(id, {
             lastBestUsd: bestFlight.total,
+            lastProvider: usedProvider,
+            lastSourceLink: sourceLink,
             updatedAt: new Date().toISOString()
         });
 
@@ -239,10 +334,41 @@ export async function POST(
                     const baseUrl = process.env.VERCEL_URL
                         ? `https://${process.env.VERCEL_URL}`
                         : process.env.NODE_ENV === 'production'
-                            ? 'https://travel-orchestrator.vercel.app'
+                            ? 'https://www.travelconductor.com'
                             : 'http://localhost:3000';
 
-                    const deeplinkUrl = `${baseUrl}/?o=${encodeURIComponent(watch.origin)}&d=${encodeURIComponent(watch.destination)}&ds=${bestDates.depart}${bestDates.return ? `&rs=${bestDates.return}` : ''}`;
+                    // Build enhanced deeplink URL with complete flight details for booking page
+                    const flightSegments = bestFlight.raw?.itineraries?.[0]?.segments || [];
+                    const segmentDetails = flightSegments.map((seg: any) => {
+                        const departure = seg.departure;
+                        const arrival = seg.arrival;
+                        return `${departure.iataCode} → ${arrival.iataCode} (${seg.carrierCode}${seg.number})`;
+                    }).join('\n');
+
+                    const deeplinkParams = new URLSearchParams({
+                        o: watch.origin,
+                        d: watch.destination,
+                        ds: bestDates.depart,
+                        p: bestFlight.total.toString(),
+                        c: bestFlight.currency,
+                        car: bestFlight.carrier,
+                        so: bestFlight.stopsOut.toString(),
+                    });
+
+                    if (bestDates.return) {
+                        deeplinkParams.set('rs', bestDates.return);
+                    }
+                    if (bestFlight.stopsBack !== undefined) {
+                        deeplinkParams.set('sb', bestFlight.stopsBack.toString());
+                    }
+                    if (watch.targetUsd) {
+                        deeplinkParams.set('tp', watch.targetUsd.toString());
+                    }
+                    if (segmentDetails) {
+                        deeplinkParams.set('seg', encodeURIComponent(segmentDetails));
+                    }
+
+                    const deeplinkUrl = `${baseUrl}/?${deeplinkParams.toString()}`;
 
                     // Prepare email data with segment details from raw flight data
                     const segments = bestFlight.raw?.itineraries?.[0]?.segments || [];

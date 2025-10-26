@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/lib/auth';
+import AuthModal from './AuthModal';
 
 interface PriceWatchModalProps {
     isOpen: boolean;
@@ -20,6 +22,10 @@ interface PriceWatchModalProps {
 }
 
 export default function PriceWatchModal({ isOpen, onClose, flightInfo }: PriceWatchModalProps) {
+    const { user } = useAuth();
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+    
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -33,6 +39,18 @@ export default function PriceWatchModal({ isOpen, onClose, flightInfo }: PriceWa
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [notes, setNotes] = useState('');
+
+    // Auto-populate email and phone when user is available
+    useEffect(() => {
+        if (user) {
+            if (!email) {
+                setEmail(user.email);
+            }
+            if (!phone && user.phone) {
+                setPhone(user.phone);
+            }
+        }
+    }, [user, email, phone]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -61,7 +79,8 @@ export default function PriceWatchModal({ isOpen, onClose, flightInfo }: PriceWa
                     currency: 'USD',
                     flexDays: 3,
                     active: true,
-                    email: email || undefined
+                    email: email || user!.email, // Use user email if not provided
+                    userId: user!.id // Include user ID for watch management
                 }),
             });
 
@@ -88,6 +107,46 @@ export default function PriceWatchModal({ isOpen, onClose, flightInfo }: PriceWa
     };
 
     if (!isOpen) return null;
+
+    // Show authentication requirement if user is not signed in
+    if (!user) {
+        return (
+            <>
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl max-w-md w-full p-6">
+                        <div className="text-center">
+                            <div className="text-orange-500 text-5xl mb-4">🔔</div>
+                            <h2 className="text-2xl font-bold text-gray-800 mb-4">Sign In Required</h2>
+                            <p className="text-gray-600 mb-6">
+                                Please sign in to your account to create price watches and receive notifications when flight prices change.
+                            </p>
+                            
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <button
+                                    onClick={() => setShowAuthModal(true)}
+                                    className="flex-1 bg-orange-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-orange-700 transition-colors"
+                                >
+                                    Sign In / Sign Up
+                                </button>
+                                <button
+                                    onClick={onClose}
+                                    className="flex-1 bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <AuthModal 
+                    isOpen={showAuthModal} 
+                    onClose={() => setShowAuthModal(false)} 
+                    initialMode={authMode}
+                />
+            </>
+        );
+    }
 
     if (success) {
         return (

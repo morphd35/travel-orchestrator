@@ -6,7 +6,7 @@ async function triggerWatchInternal(watchId: string): Promise<{ success: boolean
     try {
         // Call the trigger route internally
         const triggerUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/edge/watch/${watchId}/trigger`;
-        
+
         const response = await fetch(triggerUrl, {
             method: 'POST',
             headers: {
@@ -34,7 +34,7 @@ async function triggerWatchInternal(watchId: string): Promise<{ success: boolean
  */
 export async function POST(req: NextRequest) {
     const startTime = new Date();
-    
+
     try {
         console.log('🧹 Starting watch sweep at', startTime.toISOString());
 
@@ -66,9 +66,9 @@ export async function POST(req: NextRequest) {
         // Process each active watch
         for (const watch of activeWatches) {
             console.log(`🔍 Processing watch: ${watch.id} (${watch.origin} → ${watch.destination})`);
-            
+
             const triggerResult = await triggerWatchInternal(watch.id);
-            
+
             if (triggerResult.success) {
                 const result = triggerResult.result;
                 results.push({
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error('❌ Sweep failed:', error);
-        
+
         return NextResponse.json({
             success: false,
             error: error.message,

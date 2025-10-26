@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Enhanced Email-to-Booking Flow</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .email-preview { background: white; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; }
+        .test-info { background: #e3f2fd; padding: 15px; margin-bottom: 20px; border-radius: 4px; }
+        .button { display: inline-block; padding: 12px 24px; margin: 10px; text-decoration: none; border-radius: 4px; font-weight: bold; }
+        .book-btn { background: #28a745; color: white; }
+        .search-btn { background: #007bff; color: white; }
+    </style>
+</head>
+<body>
+    <div class="test-info">
+        <h2>🧪 Enhanced Email-to-Booking Flow Test</h2>
+        <p><strong>Scenario:</strong> User receives price alert email for LAX → JFK flight</p>
+        <p><strong>Enhancement:</strong> "Book This Flight" button now pre-fills all flight details</p>
+    </div>
+
+    <div class="email-preview">
+        <div style="background: #007bff; color: white; padding: 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px;">✈️ FLIGHT PRICE ALERT</h1>
+        </div>
+        
+        <div style="padding: 30px;">
+            <div style="background: #f8f9fa; border-left: 4px solid #28a745; padding: 20px; margin-bottom: 25px; border-radius: 4px;">
+                <h2 style="margin: 0 0 10px 0; color: #28a745; font-size: 32px;">USD $456.78</h2>
+                <p style="margin: 0; color: #666; font-size: 16px;">Round-trip flight</p>
+                <p style="margin: 5px 0 0 0; color: #28a745; font-weight: bold;">💰 $43.22 below your target!</p>
+            </div>
+            
+            <div style="display: flex; align-items: center; margin-bottom: 15px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+                <div style="text-align: center; flex: 1;">
+                    <div style="font-size: 20px; font-weight: bold; color: #333;">Los Angeles</div>
+                    <div style="font-size: 12px; color: #666;">LAX</div>
+                    <div style="font-size: 12px; color: #666;">Feb 15, 2024</div>
+                </div>
+                <div style="flex: 0 0 80px; text-align: center; color: #666;">
+                    <div style="font-size: 18px;">✈️</div>
+                    <div style="font-size: 10px;">American Airlines</div>
+                </div>
+                <div style="text-align: center; flex: 1;">
+                    <div style="font-size: 20px; font-weight: bold; color: #333;">New York</div>
+                    <div style="font-size: 12px; color: #666;">JFK</div>
+                    <div style="font-size: 12px; color: #666;">Feb 22, 2024</div>
+                </div>
+            </div>
+
+            <div style="background: #f8f9fa; border-radius: 6px; padding: 15px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px; color: #495057; font-weight: 600;">Flight Route Details:</h4>
+                <div style="font-family: monospace; font-size: 13px; color: #6c757d; line-height: 1.5;">
+                    LAX → DFW (AA1234)<br>
+                    DFW → JFK (AA5678)
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="http://localhost:3000/book?o=LAX&d=JFK&ds=2024-02-15&p=456.78&c=USD&car=AA&so=1&rs=2024-02-22&sb=0&tp=500&seg=LAX%20%E2%86%92%20DFW%20(AA1234)%0ADFW%20%E2%86%92%20JFK%20(AA5678)" 
+                   class="button book-btn" target="_blank">
+                    🎫 Book This Flight
+                </a>
+                <a href="http://localhost:3000/?o=LAX&d=JFK&ds=2024-02-15&p=456.78&c=USD&car=AA&so=1&rs=2024-02-22&sb=0&tp=500&seg=LAX%20%E2%86%92%20DFW%20(AA1234)%0ADFW%20%E2%86%92%20JFK%20(AA5678)" 
+                   class="button search-btn" target="_blank">
+                    🔍 Search Similar
+                </a>
+            </div>
+
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; padding: 15px;">
+                <p style="margin: 0; color: #856404; font-size: 14px;">
+                    ⚠️ <strong>Act Fast!</strong> Flight prices change frequently. 
+                    This price was found just now and may no longer be available.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 30px; text-align: center;">
+        <h3>🎯 Test the Flow:</h3>
+        <p>1. Click "Book This Flight" above</p>
+        <p>2. Notice how all flight details are pre-filled</p>
+        <p>3. Compare with "Search Similar" for regular search</p>
+    </div>
+</body>
+</html>

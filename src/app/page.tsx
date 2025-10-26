@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { apiPath } from '@/lib/apiBase';
 import { getCityFromIATA, normalizeToIATA } from '@/lib/iataCity';
@@ -8,9 +8,10 @@ import { bookingCityDeeplink } from '@/lib/booking';
 import AirportAutocomplete from '@/components/AirportAutocomplete';
 import PriceWatchModal from '@/components/PriceWatchModal';
 import { getAirlineName, getAirportName, AIRLINE_NAMES, formatStopsInfo } from '@/lib/airlineUtils';
+import { useAuth } from '@/lib/auth';
 
-// Initialize price monitoring service
-import '@/lib/priceMonitor';
+// Price monitoring is handled by the /edge/watch/run endpoint
+// and can be triggered manually or via cron jobs
 
 type SearchReq = {
   origin: string;
@@ -57,16 +58,17 @@ type PackageResult = {
 
 // Helper function to extract real flight data from Amadeus API response
 function extractRealFlightData(flight: any) {
-  const fullOffer = flight.fullOffer;
+  // Use the raw flight data from the centralized client
+  const fullOffer = flight.raw;
   if (!fullOffer || !fullOffer.itineraries || !fullOffer.itineraries[0]) {
-    // Fallback to basic data if fullOffer is not available
+    // Fallback to basic data if raw offer is not available
     return {
       carrierCode: flight.carrier || 'XX',
       flightNumber: `${flight.carrier || 'XX'}${Math.floor(Math.random() * 9000) + 1000}`,
       departureTime: '10:00 AM',
       arrivalTime: '2:00 PM',
       duration: '4h 00m',
-      stops: flight.stops || 0,
+      stops: flight.stopsOut || 0,
       aircraft: 'Aircraft TBD',
       segments: []
     };
@@ -84,7 +86,7 @@ function extractRealFlightData(flight: any) {
       departureTime: '10:00 AM',
       arrivalTime: '2:00 PM',
       duration: '4h 00m',
-      stops: flight.stops || 0,
+      stops: flight.stopsOut || 0,
       aircraft: 'Aircraft TBD',
       segments: []
     };
@@ -170,9 +172,10 @@ function parseDuration(isoDuration: string | undefined): string {
   }
 }
 
-export default function Home() {
+function Home() {
   const urlParams = useSearchParams();
-  
+  const { user } = useAuth();
+
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<PackageResult[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -300,13 +303,13 @@ export default function Home() {
   const getAirlineQuality = (code: string): 'premium' | 'standard' | 'budget' => {
     const premiumCarriers = ['LH', 'BA', 'AF', 'KL', 'VS', 'EK', 'QR', 'EY', 'SQ', 'CX', 'JL', 'NH'];
     const budgetCarriers = ['F9', 'NK', 'G4', 'FR', 'U2', 'VY', 'W6'];
-    
+
     if (premiumCarriers.includes(code)) return 'premium';
     if (budgetCarriers.includes(code)) return 'budget';
     return 'standard';
   };
 
-  const airlineMap: Record<string, { name: string; quality: 'premium' | 'standard' | 'budget' }> = 
+  const airlineMap: Record<string, { name: string; quality: 'premium' | 'standard' | 'budget' }> =
     Object.fromEntries(
       Object.entries(AIRLINE_NAMES).map(([code, name]) => [
         code,
@@ -373,7 +376,7 @@ export default function Home() {
       const destination = urlParams.get('d');
       const departDate = urlParams.get('ds');
       const returnDate = urlParams.get('rs');
-      
+
       if (origin) {
         setOriginIATA(origin);
       }
@@ -386,11 +389,11 @@ export default function Home() {
       if (returnDate) {
         setEndDate(returnDate);
       }
-      
+
       // If we have all required params, automatically trigger search
       if (origin && destination && departDate) {
         console.log(`🔗 Pre-filling form from email link: ${origin} → ${destination} on ${departDate}`);
-        
+
         // Small delay to ensure state is set before triggering search
         setTimeout(() => {
           const searchButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
@@ -458,10 +461,10 @@ export default function Home() {
       }
 
       const result = await response.json();
-      
+
       // Show success message
       alert(`✅ Watching! We'll email you on drops.\n\nWatch ID: ${result.id}\nRoute: ${getAirportName(result.origin)} → ${getAirportName(result.destination)}\nTarget: $${result.targetUsd}`);
-      
+
       // Close modal and reset form
       setRouteWatchModalOpen(false);
       setWatchTargetUsd('');
@@ -536,28 +539,26 @@ export default function Home() {
       const normalizedOrigin = normalizeToIATA(payload.origin);
       const normalizedDestination = normalizeToIATA(payload.destination);
 
-      // Call Amadeus flight search API directly with traveler information
-      const flightRes = await fetch(apiPath('/api/providers/amadeus/flight-search'), {
+      // Use new centralized flight search API with proper error handling and caching
+      const flightRes = await fetch(apiPath('/api/flights/search'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          originLocationCode: normalizedOrigin,
-          destinationLocationCode: normalizedDestination,
-          departureDate: payload.startDate,
+          origin: normalizedOrigin,
+          destination: normalizedDestination,
+          departDate: payload.startDate,
           returnDate: payload.endDate,
           adults: payload.travelers.adults + payload.travelers.seniors, // Amadeus combines adults and seniors
-          children: payload.travelers.children,
-          infants: 0, // We can add this later if needed
-          currencyCode: 'USD',
+          currency: 'USD',
           max: 50,
+          userId: user?.id, // Include user ID for search history recording
         }),
       });
 
       if (!flightRes.ok) {
-        // If Amadeus fails, show error but don't crash
-        const errorText = await flightRes.text().catch(() => '');
-        console.error('Flight search error:', errorText);
-        setError('Unable to fetch flight data from Amadeus. Please try again later.');
+        const errorData = await flightRes.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Flight search API error:', errorData);
+        setError(errorData.error || 'Unable to fetch flight data. Please try again later.');
         setResults([]);
         setLoading(false);
         return;
@@ -573,13 +574,7 @@ export default function Home() {
       }
 
       // Build travel packages from real flight data
-      const packages = flights.map((flight: {
-        id?: string;
-        total?: number;
-        carrier?: string;
-        segments?: Array<{ carrier: string }>;
-        stops?: number
-      }, index: number) => {
+      const packages = flights.map((flight: any, index: number) => {
         // Use the flight price as returned by the API (already accounts for travelers)
         const flightPrice = flight.total || 0;
 
@@ -608,13 +603,13 @@ export default function Home() {
         // Car vendors
         const carVendors = ['Hertz', 'Enterprise', 'Avis', 'Budget', 'National', 'Alamo'];
 
-        // Extract real flight information from Amadeus API response
+        // Extract real flight information from centralized Amadeus client
         const realFlightData = extractRealFlightData(flight);
-        const carrierCode = realFlightData.carrierCode;
+        const carrierCode = flight.carrier;
         const airlineInfo = airlineMap[carrierCode] || { name: `${carrierCode} Airways`, quality: 'standard' };
 
         return {
-          id: `pkg_${flight.id || index}`,
+          id: `pkg_${flight.raw?.id || index}`,
           summary: `${getAirportName(payload.origin)} → ${getAirportName(payload.destination)}, ${payload.startDate}–${payload.endDate} • ${totalTravelers} traveler${totalTravelers !== 1 ? 's' : ''}${payload.includeHotel ? ', Hotel' : ''}${payload.includeCar ? ', Car' : ''}`,
           total: Math.round(totalPrice * 100) / 100,
           components: {
@@ -677,14 +672,16 @@ export default function Home() {
         setActivities([]);
       }
     } catch (e: unknown) {
-      // Provide user-friendly error messages
+      // Provide user-friendly error messages for network and other errors
       const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
-      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
-        setError('Network connection issue. Please check your internet and try again.');
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError') || errorMessage.includes('Connect Timeout')) {
+        setError('Connection timeout to flight search service. Please check your internet connection and try again.');
       } else if (errorMessage.includes('502') || errorMessage.includes('503')) {
-        setError('Service temporarily unavailable. Please refresh and try again.');
+        setError('Flight search service temporarily unavailable. Please refresh and try again.');
+      } else if (errorMessage.includes('AMADEUS_API_KEY') || errorMessage.includes('Authentication failed')) {
+        setError('Flight search service configuration issue. Please contact support.');
       } else {
-        setError(errorMessage || 'Unable to search. Please try again.');
+        setError('Unable to search flights. Please try again.');
       }
       console.error('Search error:', e);
 
@@ -697,43 +694,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* Modern Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl blur opacity-40"></div>
-                <div className="relative w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-slate-900">Travel Orchestrator</h1>
-                <p className="text-xs text-slate-500">Smart travel planning</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              {/* Navigation Links */}
-              <div className="hidden md:flex items-center gap-3">
-                <a
-                  href="/watches"
-                  className="text-slate-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                >
-                  👁️ My Watches
-                </a>
-
-
-              </div>
-              <span className="hidden sm:inline-flex px-3 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
-                Beta Access
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
@@ -1084,7 +1044,7 @@ export default function Home() {
                 </svg>
                 <span>Watch This Route</span>
               </button>
-              
+
               {(!originIATA || !destinationIATA || !startDate || !endDate) && (
                 <p className="text-xs text-slate-500 text-center">
                   Fill in destinations and dates to enable route watching
@@ -1408,7 +1368,39 @@ export default function Home() {
                           return null;
                         }
                       })()}
-                      <button className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
+                      <button 
+                        onClick={() => {
+                          if (!searchParams) return;
+                          
+                          // Generate booking URL with flight details
+                          const bookingParams = new URLSearchParams({
+                            o: searchParams.origin,
+                            d: searchParams.destination,
+                            ds: searchParams.startDate,
+                            p: r.total.toString(),
+                            c: 'USD', // Default currency
+                            car: r.components.flight?.carrier || 'XX',
+                            so: r.components.flight?.stops?.toString() || '0',
+                            adults: (adults + seniors).toString() // Total adult passengers
+                          });
+
+                          if (searchParams.endDate) {
+                            bookingParams.set('rs', searchParams.endDate);
+                          }
+
+                          // Add flight segments if available
+                          if (r.components.flight?.segments) {
+                            const segmentDetails = r.components.flight.segments.map((seg: any) => 
+                              `${seg.departure?.iataCode || ''} → ${seg.arrival?.iataCode || ''} (${r.components.flight?.carrier})`
+                            ).join('\n');
+                            bookingParams.set('seg', encodeURIComponent(segmentDetails));
+                          }
+
+                          // Navigate to booking page
+                          window.location.href = `/book?${bookingParams.toString()}`;
+                        }}
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-blue-700 hover:to-indigo-700 hover:cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                      >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
@@ -1542,7 +1534,7 @@ export default function Home() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-2xl p-6 mx-4 max-w-md w-full">
             <h3 className="text-xl font-bold text-slate-900 mb-4">Watch This Route</h3>
-            
+
             <div className="mb-4 p-3 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-800">
                 <strong>{getAirportName(originIATA)} → {getAirportName(destinationIATA)}</strong>
@@ -1618,7 +1610,7 @@ export default function Home() {
                     <option value={3}>Up to 3 stops</option>
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Flexibility
@@ -1691,10 +1683,25 @@ export default function Home() {
       <footer className="border-t border-slate-200 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-sm text-slate-500">
-            © 2025 Travel Orchestrator. Find your perfect adventure.
+            © 2025 Travel Conductor. Find your perfect adventure.
           </p>
         </div>
       </footer>
     </div>
   );
 }
+
+function HomeWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Loading...</p>
+      </div>
+    </div>}>
+      <Home />
+    </Suspense>
+  );
+}
+
+export default HomeWrapper;

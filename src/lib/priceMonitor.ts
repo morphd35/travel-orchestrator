@@ -65,7 +65,7 @@ ${watch.baselinePrice ? `📊 Current Baseline: $${watch.baselinePrice}` : ''}
 ${watch.notes ? `📝 Your Notes: ${watch.notes}` : ''}
 
 Happy deal hunting! 🧳
-Your Travel Orchestrator Team
+Your Travel Conductor Team
 
 P.S. You can manage your price watches anytime at http://localhost:3000/watches
     `.trim();
@@ -221,7 +221,7 @@ ${bestFlight ? `
 ${watch.targetPrice && newPrice <= watch.targetPrice ? '🎯 TARGET PRICE REACHED! This price meets your target of $' + watch.targetPrice : ''}
 
 Happy travels!
-Your Travel Orchestrator Team
+Your Travel Conductor Team
     `.trim();
 
         const smsMessage = `${emoji} ${watch.title}: Flight prices ${changeType} from $${oldPrice} to $${newPrice} (${priceChange > 0 ? '+' : ''}$${priceChange.toFixed(2)}). ${isDecrease ? 'Great time to book!' : 'Consider booking soon.'}`;

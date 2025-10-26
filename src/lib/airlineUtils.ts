@@ -16,7 +16,7 @@ export const AIRLINE_NAMES: Record<string, string> = {
     'HA': 'Hawaiian Airlines',
     'G4': 'Allegiant Air',
     'SY': 'Sun Country Airlines',
-    
+
     // International Carriers
     'AC': 'Air Canada',
     'BA': 'British Airways',
@@ -60,7 +60,7 @@ export const AIRLINE_NAMES: Record<string, string> = {
     'AR': 'Aerolíneas Argentinas',
     'AV': 'Avianca',
     'CM': 'Copa Airlines',
-    
+
     // Low-cost carriers
     'FR': 'Ryanair',
     'U2': 'easyJet',
@@ -71,7 +71,7 @@ export const AIRLINE_NAMES: Record<string, string> = {
     '3O': 'Air Arabia Maroc',
     'AT': 'Royal Air Maroc',
     'WF': 'Widerøe',
-    
+
     // Cargo/Charter (less common for passenger)
     'FX': 'FedEx Express',
     'UPS': 'UPS Airlines',
@@ -132,7 +132,7 @@ export const AIRPORT_NAMES: Record<string, { city: string; country: string; name
     'PBI': { city: 'West Palm Beach', country: 'USA', name: 'Palm Beach International Airport' },
     'HNL': { city: 'Honolulu', country: 'USA', name: 'Honolulu International Airport' },
     'ANC': { city: 'Anchorage', country: 'USA', name: 'Ted Stevens Anchorage International Airport' },
-    
+
     // Canadian Airports  
     'YYZ': { city: 'Toronto', country: 'Canada', name: 'Pearson International Airport' },
     'YVR': { city: 'Vancouver', country: 'Canada', name: 'Vancouver International Airport' },
@@ -142,7 +142,7 @@ export const AIRPORT_NAMES: Record<string, { city: string; country: string; name
     'YOW': { city: 'Ottawa', country: 'Canada', name: 'Macdonald-Cartier International Airport' },
     'YHZ': { city: 'Halifax', country: 'Canada', name: 'Halifax Stanfield International Airport' },
     'YWG': { city: 'Winnipeg', country: 'Canada', name: 'Winnipeg Richardson International Airport' },
-    
+
     // European Airports
     'LHR': { city: 'London', country: 'UK', name: 'Heathrow Airport' },
     'LGW': { city: 'London', country: 'UK', name: 'Gatwick Airport' },
@@ -168,7 +168,7 @@ export const AIRPORT_NAMES: Record<string, { city: string; country: string; name
     'DUB': { city: 'Dublin', country: 'Ireland', name: 'Dublin Airport' },
     'IST': { city: 'Istanbul', country: 'Turkey', name: 'Istanbul Airport' },
     'SAW': { city: 'Istanbul', country: 'Turkey', name: 'Sabiha Gökçen Airport' },
-    
+
     // Middle East & Africa
     'DXB': { city: 'Dubai', country: 'UAE', name: 'Dubai International Airport' },
     'DOH': { city: 'Doha', country: 'Qatar', name: 'Hamad International Airport' },
@@ -180,7 +180,7 @@ export const AIRPORT_NAMES: Record<string, { city: string; country: string; name
     'NBO': { city: 'Nairobi', country: 'Kenya', name: 'Jomo Kenyatta International Airport' },
     'JNB': { city: 'Johannesburg', country: 'South Africa', name: 'O.R. Tambo International Airport' },
     'CPT': { city: 'Cape Town', country: 'South Africa', name: 'Cape Town International Airport' },
-    
+
     // Asia Pacific
     'SIN': { city: 'Singapore', country: 'Singapore', name: 'Changi Airport' },
     'BKK': { city: 'Bangkok', country: 'Thailand', name: 'Suvarnabhumi Airport' },
@@ -194,7 +194,7 @@ export const AIRPORT_NAMES: Record<string, { city: string; country: string; name
     'SYD': { city: 'Sydney', country: 'Australia', name: 'Kingsford Smith Airport' },
     'MEL': { city: 'Melbourne', country: 'Australia', name: 'Melbourne Airport' },
     'AKL': { city: 'Auckland', country: 'New Zealand', name: 'Auckland Airport' },
-    
+
     // Latin America
     'GRU': { city: 'São Paulo', country: 'Brazil', name: 'Guarulhos International Airport' },
     'GIG': { city: 'Rio de Janeiro', country: 'Brazil', name: 'Galeão International Airport' },
@@ -231,12 +231,12 @@ export function getAirportName(code: string): string {
 /**
  * Get detailed airport information
  */
-export function getAirportDetails(code: string): { 
-    code: string; 
-    city: string; 
-    country: string; 
-    name: string; 
-    display: string 
+export function getAirportDetails(code: string): {
+    code: string;
+    city: string;
+    country: string;
+    name: string;
+    display: string
 } {
     if (!code) {
         return {
@@ -247,10 +247,10 @@ export function getAirportDetails(code: string): {
             display: 'Unknown'
         };
     }
-    
+
     const upperCode = code.toUpperCase();
     const airport = AIRPORT_NAMES[upperCode];
-    
+
     if (airport) {
         return {
             code: upperCode,
@@ -260,7 +260,7 @@ export function getAirportDetails(code: string): {
             display: `${airport.city}, ${airport.country}`
         };
     }
-    
+
     return {
         code: upperCode,
         city: upperCode,
@@ -291,7 +291,7 @@ export function formatStopsInfo(stops: number, segments?: any[]): string {
                 const stopAirport = segment.arrival?.iataCode;
                 return stopAirport ? getAirportName(stopAirport) : null;
             }).filter(Boolean);
-            
+
             if (stopCities.length > 0) {
                 if (stopCities.length === 2) {
                     return `2 stops in ${stopCities.join(' and ')}`;
@@ -311,15 +311,15 @@ export function getFlightRouting(segments?: any[]): string {
     if (!segments || segments.length <= 1) {
         return '';
     }
-    
+
     const stops = segments.slice(0, -1).map((segment: any) => {
         const stopCode = segment.arrival?.iataCode;
         const stopCity = stopCode ? getAirportName(stopCode) : 'Unknown';
         const layoverDuration = getLayoverDuration(segment, segments[segments.indexOf(segment) + 1]);
-        
+
         return `${stopCity} (${stopCode})${layoverDuration ? ` - ${layoverDuration} layover` : ''}`;
     });
-    
+
     return stops.join('\n   → ');
 }
 
@@ -330,14 +330,14 @@ function getLayoverDuration(currentSegment: any, nextSegment: any): string {
     if (!currentSegment?.arrival?.at || !nextSegment?.departure?.at) {
         return '';
     }
-    
+
     try {
         const arrivalTime = new Date(currentSegment.arrival.at);
         const departureTime = new Date(nextSegment.departure.at);
         const layoverMs = departureTime.getTime() - arrivalTime.getTime();
         const layoverHours = Math.floor(layoverMs / (1000 * 60 * 60));
         const layoverMinutes = Math.floor((layoverMs % (1000 * 60 * 60)) / (1000 * 60));
-        
+
         if (layoverHours > 0) {
             return layoverMinutes > 0 ? `${layoverHours}h ${layoverMinutes}m` : `${layoverHours}h`;
         } else if (layoverMinutes > 0) {
@@ -346,7 +346,7 @@ function getLayoverDuration(currentSegment: any, nextSegment: any): string {
     } catch (error) {
         // Ignore date parsing errors
     }
-    
+
     return '';
 }
 
@@ -355,13 +355,13 @@ function getLayoverDuration(currentSegment: any, nextSegment: any): string {
  */
 export function formatDuration(duration: string): string {
     if (!duration) return '';
-    
+
     // Parse ISO 8601 duration (PT2H30M)
     const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
     if (match) {
         const hours = parseInt(match[1] || '0');
         const minutes = parseInt(match[2] || '0');
-        
+
         if (hours > 0 && minutes > 0) {
             return `${hours}h ${minutes}m`;
         } else if (hours > 0) {
@@ -370,7 +370,7 @@ export function formatDuration(duration: string): string {
             return `${minutes}m`;
         }
     }
-    
+
     return duration;
 }
 
@@ -379,7 +379,7 @@ export function formatDuration(duration: string): string {
  */
 export function formatTime(isoString: string): string {
     if (!isoString) return '';
-    
+
     try {
         const date = new Date(isoString);
         return date.toLocaleTimeString('en-US', {
@@ -397,7 +397,7 @@ export function formatTime(isoString: string): string {
  */
 export function formatDate(isoString: string): string {
     if (!isoString) return '';
-    
+
     try {
         const date = new Date(isoString);
         return date.toLocaleDateString('en-US', {

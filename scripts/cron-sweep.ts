@@ -13,7 +13,7 @@
  *   node scripts/cron-sweep.js (if compiled)
  * 
  * Environment Variables:
- *   BASE_URL - The base URL of the travel orchestrator (default: http://localhost:3000)
+ *   BASE_URL - The base URL of the travel conductor (default: http://localhost:3000)
  */
 
 const dotenv = require('dotenv');
@@ -39,7 +39,7 @@ interface SweepResult {
 
 async function runSweep(): Promise<SweepResult> {
     const startTime = new Date();
-    
+
     console.log(`🧹 Starting watch sweep at ${startTime.toISOString()}`);
     console.log(`📡 Calling: ${SWEEP_ENDPOINT}`);
 
@@ -60,12 +60,12 @@ async function runSweep(): Promise<SweepResult> {
         }
 
         const result = await response.json() as SweepResult;
-        
+
         const endTime = new Date();
         const totalDuration = endTime.getTime() - startTime.getTime();
 
         console.log(`✅ Sweep completed successfully in ${totalDuration}ms`);
-        
+
         if (result.summary) {
             console.log(`📊 Results: ${result.summary.total} watches processed`);
             console.log(`📧 Notifications sent: ${result.summary.notified}`);
@@ -78,9 +78,9 @@ async function runSweep(): Promise<SweepResult> {
     } catch (error: any) {
         const endTime = new Date();
         const totalDuration = endTime.getTime() - startTime.getTime();
-        
+
         console.error(`❌ Sweep failed after ${totalDuration}ms:`, error.message);
-        
+
         return {
             success: false,
             error: error.message
@@ -89,22 +89,22 @@ async function runSweep(): Promise<SweepResult> {
 }
 
 async function main() {
-    console.log('🚀 Travel Orchestrator - Cron Sweep Worker');
+    console.log('🚀 Travel Conductor - Cron Sweep Worker');
     console.log(`🕐 Started at: ${new Date().toISOString()}`);
     console.log(`🌐 Base URL: ${BASE_URL}`);
     console.log('');
 
     try {
         const result = await runSweep();
-        
+
         // Output final result as JSON for logging/monitoring
         console.log('');
         console.log('📋 Final Result:');
         console.log(JSON.stringify(result, null, 2));
-        
+
         // Exit with appropriate code
         process.exit(result.success ? 0 : 1);
-        
+
     } catch (error: any) {
         console.error('💥 Fatal error:', error.message);
         console.log('');
@@ -114,7 +114,7 @@ async function main() {
             error: error.message,
             timestamp: new Date().toISOString()
         }, null, 2));
-        
+
         process.exit(1);
     }
 }

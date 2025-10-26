@@ -11,10 +11,10 @@ async function testEmail() {
         console.log('📧 Sending to:', process.env.NOTIFY_TO);
         console.log('📧 From:', process.env.SENDGRID_FROM_EMAIL);
         console.log('🔑 SendGrid API Key:', process.env.SENDGRID_API_KEY ? `${process.env.SENDGRID_API_KEY.substring(0, 10)}...` : 'NOT SET');
-        
+
         const result = await sendEmail({
             to: process.env.NOTIFY_TO || 'morphd35@gmail.com',
-            subject: '🧪 Test Email from Travel Orchestrator',
+            subject: '🧪 Test Email from Travel Conductor',
             html: `
                 <h2>Email Test Successful! ✅</h2>
                 <p>This is a test email to verify your email notifications are working.</p>
@@ -37,7 +37,7 @@ If you receive this email, your watch notifications will work correctly!
         console.log('✅ Test email sent successfully!');
         console.log('📧 Message ID:', result.messageId);
         console.log('📧 Provider:', result.provider);
-        
+
     } catch (error) {
         console.error('❌ Email test failed:', error);
     }

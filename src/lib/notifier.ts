@@ -35,7 +35,7 @@ async function sendViaSendGrid(payload: EmailPayload): Promise<EmailResponse> {
             to: payload.to,
             from: {
                 email: process.env.SENDGRID_FROM_EMAIL || process.env.NOTIFY_TO || 'morphd35@gmail.com',
-                name: 'Travel Orchestrator'
+                name: 'Travel Conductor'
             },
             subject: payload.subject,
             text: payload.text,
@@ -72,7 +72,7 @@ async function sendViaMailgun(payload: EmailPayload): Promise<EmailResponse> {
 
     const formData = new FormData();
     const fromEmail = process.env.SENDGRID_FROM_EMAIL || process.env.NOTIFY_TO || 'alerts@' + MAILGUN_DOMAIN;
-    formData.append('from', `Travel Orchestrator <${fromEmail}>`);
+    formData.append('from', `Travel Conductor <${fromEmail}>`);
     formData.append('to', payload.to);
     formData.append('subject', payload.subject);
     formData.append('text', payload.text);
@@ -169,14 +169,14 @@ export function htmlToText(html: string): string {
 export async function sendTestEmail(to: string): Promise<EmailResponse> {
     const testPayload: EmailPayload = {
         to,
-        subject: '✈️ Travel Orchestrator Test Email',
+        subject: '✈️ Travel Conductor Test Email',
         html: `
       <h2>🧪 Test Email</h2>
-      <p>This is a test email from Travel Orchestrator.</p>
+      <p>This is a test email from Travel Conductor.</p>
       <p>If you received this, your email configuration is working correctly!</p>
       <p><small>Sent at: ${new Date().toISOString()}</small></p>
     `,
-        text: `Test Email\n\nThis is a test email from Travel Orchestrator.\nIf you received this, your email configuration is working correctly!\n\nSent at: ${new Date().toISOString()}`,
+        text: `Test Email\n\nThis is a test email from Travel Conductor.\nIf you received this, your email configuration is working correctly!\n\nSent at: ${new Date().toISOString()}`,
     };
 
     return await sendEmail(testPayload);

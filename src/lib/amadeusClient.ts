@@ -9,6 +9,21 @@ export type NormalFlight = {
     raw: any;
 };
 
+// Typed errors for graceful degradation
+export class AmadeusRateLimitError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'AmadeusRateLimitError';
+    }
+}
+
+export class AmadeusProviderError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'AmadeusProviderError';
+    }
+}
+
 export type FlightSearchParams = {
     origin: string;
     destination: string;
@@ -56,6 +71,10 @@ export async function getToken(): Promise<string> {
     }
 
     try {
+        // Add timeout and retry logic for better reliability
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
         const response = await fetch(`${AMADEUS_HOST}/v1/security/oauth2/token`, {
             method: 'POST',
             headers: {
@@ -66,10 +85,24 @@ export async function getToken(): Promise<string> {
                 client_id: AMADEUS_API_KEY,
                 client_secret: AMADEUS_API_SECRET,
             }),
+            signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             const errorText = await response.text();
+
+            // Handle rate limiting
+            if (response.status === 429) {
+                throw new AmadeusRateLimitError(`Rate limit exceeded: ${response.status} ${response.statusText}`);
+            }
+
+            // Handle server errors
+            if (response.status >= 500) {
+                throw new AmadeusProviderError(`Provider server error: ${response.status} ${response.statusText}`);
+            }
+
             throw new Error(`OAuth token request failed: ${response.status} ${response.statusText}. Body: ${errorText.slice(0, 200)}`);
         }
 
@@ -90,9 +123,23 @@ export async function getToken(): Promise<string> {
 
         return tokenCache.token;
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('❌ Failed to get Amadeus token:', error);
         tokenCache = null; // Clear cache on error
+        
+        // Handle specific connection errors
+        if (error.name === 'AbortError') {
+            throw new AmadeusProviderError('Connection timeout to Amadeus API. Please try again later.');
+        }
+        
+        if (error.code === 'UND_ERR_CONNECT_TIMEOUT' || error.message?.includes('Connect Timeout')) {
+            throw new AmadeusProviderError('Connection timeout to Amadeus API. Please try again later.');
+        }
+        
+        if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+            throw new AmadeusProviderError('Unable to connect to Amadeus API. Please check your internet connection.');
+        }
+        
         throw error;
     }
 }
@@ -181,16 +228,33 @@ export async function searchFlights(params: FlightSearchParams): Promise<NormalF
             apiParams.append('returnDate', normalizedParams.returnDate);
         }
 
-        // Make API request
+        // Make API request with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout for flight search
+
         const response = await fetch(`${AMADEUS_HOST}/v2/shopping/flight-offers?${apiParams}`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Accept': 'application/json',
             },
+            signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             const errorText = await response.text();
+
+            // Handle rate limiting
+            if (response.status === 429) {
+                throw new AmadeusRateLimitError(`Flight search rate limit exceeded: ${response.status} ${response.statusText}`);
+            }
+
+            // Handle server errors
+            if (response.status >= 500) {
+                throw new AmadeusProviderError(`Flight search provider error: ${response.status} ${response.statusText}`);
+            }
+
             throw new Error(`Flight search failed: ${response.status} ${response.statusText}. Body: ${errorText.slice(0, 300)}`);
         }
 
@@ -201,8 +265,18 @@ export async function searchFlights(params: FlightSearchParams): Promise<NormalF
             return [];
         }
 
+        // Debug: Log first raw flight for analysis
+        if (data.data && data.data.length > 0) {
+            console.log('🔍 First raw flight from Amadeus:', JSON.stringify(data.data[0], null, 2).substring(0, 500) + '...');
+        }
+
         // Normalize results
         const normalizedFlights = data.data.map(normalizeFlightOffer);
+
+        // Debug: Log first normalized flight 
+        if (normalizedFlights.length > 0) {
+            console.log('🔄 First normalized flight:', JSON.stringify(normalizedFlights[0], null, 2));
+        }
 
         // Cache results
         resultCache.set(cacheKey, {
@@ -214,8 +288,22 @@ export async function searchFlights(params: FlightSearchParams): Promise<NormalF
 
         return normalizedFlights;
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('❌ Flight search error:', error);
+        
+        // Handle specific connection errors
+        if (error.name === 'AbortError') {
+            throw new AmadeusProviderError('Flight search timeout. Please try again later.');
+        }
+        
+        if (error.code === 'UND_ERR_CONNECT_TIMEOUT' || error.message?.includes('Connect Timeout')) {
+            throw new AmadeusProviderError('Flight search timeout. Please try again later.');
+        }
+        
+        if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+            throw new AmadeusProviderError('Unable to connect to flight search service. Please check your internet connection.');
+        }
+        
         throw error;
     }
 }

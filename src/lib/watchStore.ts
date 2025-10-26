@@ -15,6 +15,9 @@ export type Watch = {
     flexDays: number;
     active: boolean;
     email?: string; // User's email for notifications
+    provider: "amadeus" | "skyscanner"; // Default flight search provider
+    lastProvider?: string; // Provider used for last successful search
+    lastSourceLink?: string; // URL to book the last found deal
     lastBestUsd?: number;
     lastNotifiedUsd?: number;
     createdAt: string;
@@ -25,10 +28,10 @@ export type Watch = {
 const insertWatch = db.prepare(`
   INSERT INTO watches (
     id, userId, origin, destination, start, end, cabin, maxStops, adults, 
-    currency, targetUsd, flexDays, active, email, lastBestUsd, lastNotifiedUsd, 
-    createdAt, updatedAt
+    currency, targetUsd, flexDays, active, email, provider, lastProvider, 
+    lastSourceLink, lastBestUsd, lastNotifiedUsd, createdAt, updatedAt
   ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
   )
 `);
 
@@ -44,7 +47,8 @@ const updateWatchById = db.prepare(`
   UPDATE watches SET 
     userId = ?, origin = ?, destination = ?, start = ?, end = ?, cabin = ?, 
     maxStops = ?, adults = ?, currency = ?, targetUsd = ?, flexDays = ?, 
-    active = ?, email = ?, lastBestUsd = ?, lastNotifiedUsd = ?, updatedAt = ?
+    active = ?, email = ?, provider = ?, lastProvider = ?, lastSourceLink = ?, 
+    lastBestUsd = ?, lastNotifiedUsd = ?, updatedAt = ?
   WHERE id = ?
 `);
 
@@ -74,6 +78,7 @@ export function createWatch(watchData: Omit<Watch, 'id' | 'createdAt' | 'updated
     const now = new Date().toISOString();
     const watch: Watch = {
         ...watchData,
+        provider: watchData.provider || 'amadeus', // Default provider if not specified
         id: generateId(),
         createdAt: now,
         updatedAt: now,
@@ -82,7 +87,8 @@ export function createWatch(watchData: Omit<Watch, 'id' | 'createdAt' | 'updated
     insertWatch.run(
         watch.id, watch.userId, watch.origin, watch.destination, watch.start, watch.end,
         watch.cabin, watch.maxStops, watch.adults, watch.currency, watch.targetUsd,
-        watch.flexDays, watch.active ? 1 : 0, watch.email || null, watch.lastBestUsd || null, 
+        watch.flexDays, watch.active ? 1 : 0, watch.email || null, watch.provider,
+        watch.lastProvider || null, watch.lastSourceLink || null, watch.lastBestUsd || null,
         watch.lastNotifiedUsd || null, watch.createdAt, watch.updatedAt
     );
 
@@ -97,6 +103,9 @@ export function listWatches(userId: string): Watch[] {
     return rows.map(row => ({
         ...row,
         active: Boolean(row.active),
+        provider: row.provider || 'amadeus',
+        lastProvider: row.lastProvider || undefined,
+        lastSourceLink: row.lastSourceLink || undefined,
         lastBestUsd: row.lastBestUsd || undefined,
         lastNotifiedUsd: row.lastNotifiedUsd || undefined
     }));
@@ -108,10 +117,13 @@ export function listWatches(userId: string): Watch[] {
 export function getWatch(id: string): Watch | null {
     const row = selectWatchById.get(id) as any;
     if (!row) return null;
-    
+
     return {
         ...row,
         active: Boolean(row.active),
+        provider: row.provider || 'amadeus',
+        lastProvider: row.lastProvider || undefined,
+        lastSourceLink: row.lastSourceLink || undefined,
         lastBestUsd: row.lastBestUsd || undefined,
         lastNotifiedUsd: row.lastNotifiedUsd || undefined
     };
@@ -137,10 +149,11 @@ export function updateWatch(id: string, patch: Partial<Omit<Watch, 'id' | 'creat
         updatedWatch.start, updatedWatch.end, updatedWatch.cabin, updatedWatch.maxStops,
         updatedWatch.adults, updatedWatch.currency, updatedWatch.targetUsd,
         updatedWatch.flexDays, updatedWatch.active ? 1 : 0, updatedWatch.email || null,
+        updatedWatch.provider, updatedWatch.lastProvider || null, updatedWatch.lastSourceLink || null,
         updatedWatch.lastBestUsd || null, updatedWatch.lastNotifiedUsd || null,
         updatedWatch.updatedAt, updatedWatch.id
     );
-    
+
     return updatedWatch;
 }
 
@@ -160,6 +173,9 @@ export function getAllWatches(): Watch[] {
     return rows.map(row => ({
         ...row,
         active: Boolean(row.active),
+        provider: row.provider || 'amadeus',
+        lastProvider: row.lastProvider || undefined,
+        lastSourceLink: row.lastSourceLink || undefined,
         lastBestUsd: row.lastBestUsd || undefined,
         lastNotifiedUsd: row.lastNotifiedUsd || undefined
     }));

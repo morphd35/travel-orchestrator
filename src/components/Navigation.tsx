@@ -8,7 +8,7 @@ export default function Navigation() {
                     {/* Logo/Brand */}
                     <div className="flex items-center">
                         <Link href="/" className="text-xl font-bold text-blue-600 hover:text-blue-700">
-                            ✈️ Travel Orchestrator
+                            ✈️ Travel Conductor
                         </Link>
                     </div>
 

@@ -17,6 +17,9 @@ const CreateWatchSchema = z.object({
     flexDays: z.number().int().min(0).max(30),
     active: z.boolean().default(true),
     email: z.string().email().optional(),
+    provider: z.enum(['amadeus', 'skyscanner']).default('amadeus'),
+    lastProvider: z.string().optional(),
+    lastSourceLink: z.string().optional(),
     lastBestUsd: z.number().optional(),
     lastNotifiedUsd: z.number().optional(),
 });
@@ -50,6 +53,33 @@ export async function POST(request: NextRequest) {
 
         // Create the watch
         const watch = createWatch(validatedData);
+
+        // Trigger an initial check for the new watch after a short delay
+        setTimeout(async () => {
+            try {
+                const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+                const triggerUrl = `${baseUrl}/edge/watch/${watch.id}/trigger`;
+                
+                console.log(`🚀 Triggering initial check for new watch: ${watch.origin} → ${watch.destination}`);
+                
+                const response = await fetch(triggerUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'initial-check/1.0'
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log(`✅ Initial check completed for new watch: ${result.action || 'baseline set'}`);
+                } else {
+                    console.log(`⚠️ Initial check failed for new watch: ${response.status}`);
+                }
+            } catch (error: any) {
+                console.log(`❌ Error in initial check for new watch: ${error.message}`);
+            }
+        }, 5000); // 5 second delay to allow response to be sent first
 
         return Response.json(watch, { status: 201 });
 
