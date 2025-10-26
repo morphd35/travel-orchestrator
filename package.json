@@ -13,11 +13,13 @@
     "@types/bcryptjs": "^3.0.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/node-cache": "^4.2.5",
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^12.4.1",
     "dotenv": "^17.2.3",
     "jsonwebtoken": "^9.0.2",
     "next": "15.5.4",
+    "node-cache": "^5.1.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "zod": "^4.1.12"

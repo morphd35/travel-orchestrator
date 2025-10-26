@@ -49,7 +49,6 @@ function getDestinationSlug(airportCode: string): string {
     'NAP': 'naples',
     'FLR': 'florence',
     'LIS': 'lisbon',
-    'MAD': 'madrid',
     'SVQ': 'seville'
   };
 

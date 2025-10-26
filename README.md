@@ -1,6 +1,6 @@
-# Travel Conductor
+# Travel Conductor ✈️
 
-A comprehensive travel platform with user authentication, automated price monitoring, real-time flight search, and production-ready booking capabilities.
+A comprehensive travel platform with user authentication, automated price monitoring, real-time flight search, production-ready booking capabilities, and Cars.com-inspired purchase analytics for travelers.
 
 ## 🚀 **Key Features**
 
@@ -24,13 +24,16 @@ A comprehensive travel platform with user authentication, automated price monito
 - 📧 **Email Notifications** - Rich HTML alerts with booking deeplinks
 - 🎯 **Flexible Monitoring** - Date ranges, stop preferences, passenger counts
 - 🏠 **User Dashboard** - Dedicated pages for bookings (`/bookings`) and watches (`/watches`)
+- 🌍 **Dynamic Destinations** - Universal destination pages supporting unlimited locations
+- 📊 **Purchase Analytics** - Cars.com-style data showing what real travelers paid
 
 ### **Technical Architecture**
 - 🏗️ **Production Ready** - Complete booking flow from search to confirmation
 - 🔒 **Secure & Validated** - Comprehensive input validation and error handling
 - ⚡ **High Performance** - Intelligent caching and background processing
-- 🔄 **Auto-Scaling** - Background monitoring with configurable intervals
-- 💾 **Database-Backed** - SQLite database with comprehensive user management
+- 🔄 **Production Monitoring** - Optimized 30-minute intervals with health checks
+- 💾 **Advanced Analytics** - Purchase data system with price distribution visualization
+- 🌐 **Universal Routing** - Dynamic destination system supporting infinite locations
 
 ## Tech Stack
 
@@ -40,6 +43,7 @@ A comprehensive travel platform with user authentication, automated price monito
 - **Authentication:** JWT tokens with HTTP-only cookies, bcrypt password hashing
 - **Styling:** Tailwind CSS v4
 - **APIs:** Amadeus, SendGrid, Booking.com, Viator
+- **Branding:** Travel Conductor ✈️ with airplane emoji logo system
 
 ## Environment Variables
 
@@ -81,8 +85,9 @@ VIATOR_API_KEY=your_viator_api_key
 # Booking Configuration
 AMADEUS_BOOKING_ENABLED=true  # Enable direct booking in production
 
-# Background Monitoring
-NEXT_PUBLIC_BASE_URL=https://your-domain.com  # For automatic monitoring
+# Background Monitoring (Production optimized - 30 minute intervals)
+# Required - Base URL for monitoring
+NEXT_PUBLIC_BASE_URL=https://www.travelconductor.com
 ```
 
 ### Optional (Client-side)
@@ -175,13 +180,46 @@ When users are signed in, forms automatically populate with:
 - **Delete:** `DELETE /edge/watch?id=${watchId}`
 - **Trigger:** `POST /edge/watch/${watchId}/trigger` (manual check)
 
+### **Dynamic Destination System (`/destinations/[destination]`)**
+
+**Universal Destination Support:**
+- ✅ **Unlimited Destinations** - Dynamic routing supports any destination worldwide
+- ✅ **Comprehensive Mapping** - Extensive domestic and international destination database
+- ✅ **Smart Routing** - Automatic airport code to city name mapping
+- ✅ **SEO Optimized** - Dynamic meta tags and structured data for each destination
+
+**Supported Destinations Include:**
+- **Domestic:** Las Vegas, Orlando, Miami, New York City, Los Angeles, Chicago, Atlanta
+- **International:** Rome, London, Paris, Tokyo, Cancún, Barcelona, Amsterdam
+- **Automatic Detection:** Works with any valid city/airport code combination
+
+### **Purchase Analytics System (Cars.com-Inspired)**
+
+**What Others Paid Feature:**
+- ✅ **Real Purchase Data** - 90-day traveler booking insights (mock data infrastructure ready)
+- ✅ **Price Distribution** - Visual charts showing actual booking price ranges
+- ✅ **Statistical Analysis** - Median, average, 25th/75th percentile pricing
+- ✅ **Booking Patterns** - Direct flight percentages, advance booking trends
+- ✅ **Airline Insights** - Most commonly booked airlines for routes
+
+**API Endpoints:**
+- **Purchase Data:** `GET /api/analytics/purchases?origin=${origin}&destination=${destination}&cabin=${cabin}`
+- **Route Analytics:** `GET /api/destinations/${destination}` (destination-specific data)
+
+**Data Infrastructure Ready For:**
+- IATA Economics integration
+- ARC (Airlines Reporting Corporation) data
+- DOT DB1B market data
+- Amadeus Historical Pricing API
+- Real-time purchase tracking
+
 ## Getting Started
 
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/yourusername/travel-conductor
-cd travel-conductor
+git clone https://github.com/morphd35/travel-orchestrator
+cd travel-orchestrator
 npm install
 ```
 
@@ -253,8 +291,9 @@ curl -X POST http://localhost:3000/api/auth/signup \
 
 ### **Price Monitoring & Alerts**
 
-**Automated Watch System:**
-- ✅ **Background Processing** - Server-side monitoring every 2 minutes
+**Production-Optimized Watch System:**
+- ✅ **Background Processing** - Server-side monitoring every 30 minutes (production optimized)
+- ✅ **Health Check Integration** - Development environment monitoring with /api/health checks
 - ✅ **User-Specific Filtering** - Watches filtered by authenticated user ID
 - ✅ **Smart Notifications** - Target-based and significant drop alerts  
 - ✅ **Rich Email Templates** - HTML emails with booking deeplinks
@@ -352,6 +391,12 @@ CREATE TABLE searches (
 - Get confirmation with reference numbers
 - View booking history in `/bookings`
 
+**5. Research Destinations:**
+- Explore dynamic destination pages at `/destinations/{city-name}`
+- View "What Others Paid" purchase analytics for any route
+- See price distributions, booking patterns, and traveler insights
+- Access comprehensive destination information and travel data
+
 ### **For Developers**
 
 **1. Authentication Integration:**
@@ -417,8 +462,15 @@ travel-conductor/
 │   │   │   ├── user/                   # User-specific data
 │   │   │   │   ├── bookings/route.ts   # User's booking history
 │   │   │   │   └── searches/route.ts   # User's search history
+│   │   │   ├── analytics/              # Purchase analytics system
+│   │   │   │   └── purchases/route.ts  # Cars.com-style purchase data
+│   │   │   ├── destinations/route.ts   # Dynamic destination data
+│   │   │   ├── health/route.ts         # Health checks for monitoring
 │   │   │   └── booking/flight/         # Booking API endpoints
 │   │   ├── edge/watch/                 # Watch management endpoints
+│   │   ├── destinations/               # Dynamic destination system
+│   │   │   └── [destination]/         # Universal destination pages
+│   │   │       └── page.tsx           # Dynamic routing for any destination
 │   │   ├── bookings/                   # User dashboard page
 │   │   │   └── page.tsx               # Bookings, watches, searches
 │   │   ├── watches/                    # Watch management page
@@ -431,8 +483,10 @@ travel-conductor/
 │   │   ├── AirportAutocomplete.tsx     # Smart airport search
 │   │   ├── BookingForm.tsx             # 4-step booking process (auto-fill)
 │   │   ├── Navigation.tsx              # Site navigation with auth
-│   │   ├── GlobalNavigation.tsx        # Enhanced nav with user menu
-│   │   └── PriceWatchModal.tsx         # Watch creation modal (auto-fill)
+│   │   ├── GlobalNavigation.tsx        # Enhanced nav with user menu ✈️
+│   │   ├── PriceWatchModal.tsx         # Watch creation modal (auto-fill)
+│   │   ├── WhatOthersPaid.tsx          # Cars.com-style purchase analytics
+│   │   └── DestinationPageTemplate.tsx # Universal destination page template
 │   ├── lib/
 │   │   ├── auth.tsx                    # Authentication context & hooks
 │   │   ├── database.ts                 # SQLite database with user tables
@@ -565,6 +619,16 @@ AMADEUS_BOOKING_ENABLED=true
 **Database Files:**
 - `travel_orchestrator.db` - Main database (users, sessions, bookings, searches)
 - `watches.db` - Price watch system data
+- `purchase_analytics.sql` - Schema for Cars.com-style purchase analytics
+
+## Production Monitoring
+
+The platform includes production-optimized background monitoring:
+
+- **Frequency:** 30-minute intervals (optimized from 2-minute testing intervals)
+- **Health Checks:** Automatic `/api/health` endpoint validation in development
+- **Error Handling:** Improved logging and 404 error prevention
+- **Performance:** Reduced API load while maintaining effective price monitoring
 
 ## Health Check
 
