@@ -8,16 +8,33 @@
  */
 
 let monitoringInterval: NodeJS.Timeout | null = null;
-const MONITORING_FREQUENCY = 2 * 60 * 1000; // 2 minutes for development
+const MONITORING_FREQUENCY = 30 * 60 * 1000; // 30 minutes for production
 
 async function runWatchMonitoring() {
     try {
         console.log('🔄 Running automatic watch monitoring...');
-        
+
         // Use the existing sweep endpoint
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
         const sweepUrl = `${baseUrl}/edge/watch/run`;
-        
+
+        // Quick health check first in development
+        if (process.env.NODE_ENV === 'development') {
+            try {
+                const healthCheck = await fetch(`${baseUrl}/api/health`, {
+                    method: 'GET',
+                    headers: { 'User-Agent': 'background-monitor/health-check' }
+                });
+                if (!healthCheck.ok) {
+                    console.log('⚠️ Skipping monitoring - server not ready');
+                    return;
+                }
+            } catch (error) {
+                console.log('⚠️ Skipping monitoring - server unreachable');
+                return;
+            }
+        }
+
         const response = await fetch(sweepUrl, {
             method: 'POST',
             headers: {
@@ -33,8 +50,13 @@ async function runWatchMonitoring() {
                 console.log(`📧 ${result.summary.notified} notifications sent`);
             }
         } else {
-            const errorText = await response.text();
-            console.log(`⚠️ Automatic monitoring failed: ${response.status} - ${errorText}`);
+            // Don't log full HTML for 404s during development - just log status
+            if (response.status === 404) {
+                console.log(`⚠️ Automatic monitoring failed: ${response.status} (endpoint unavailable - likely during server restart)`);
+            } else {
+                const errorText = await response.text();
+                console.log(`⚠️ Automatic monitoring failed: ${response.status} - ${errorText.substring(0, 200)}...`);
+            }
         }
 
     } catch (error: any) {
@@ -46,11 +68,11 @@ async function runWatchMonitoring() {
 if (typeof window === 'undefined' && typeof process !== 'undefined') {
     console.log('🚀 Starting background watch monitoring service...');
     console.log(`⏰ Monitoring frequency: every ${MONITORING_FREQUENCY / 1000} seconds`);
-    
-    // Initial check after 1 minute (let server fully start)
+
+    // Initial check after 5 minutes (let server fully start and stabilize)
     setTimeout(() => {
         runWatchMonitoring();
-    }, 60 * 1000);
+    }, 5 * 60 * 1000);
 
     // Then check at configured frequency
     monitoringInterval = setInterval(() => {

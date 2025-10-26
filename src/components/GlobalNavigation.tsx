@@ -6,20 +6,38 @@
  */
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import AuthModal from './AuthModal';
 
 interface NavigationProps {
-    currentPage?: 'search' | 'book' | 'watches' | 'confirmation';
+    currentPage?: 'search' | 'book' | 'watches' | 'confirmation' | 'about' | 'destination';
 }
 
-export default function GlobalNavigation({ currentPage = 'search' }: NavigationProps) {
+export default function GlobalNavigation({ currentPage }: NavigationProps) {
     const { user, signOut, isLoading } = useAuth();
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const pathname = usePathname();
+    const [detectedPage, setDetectedPage] = useState<string>(currentPage || 'search');
+
+    // Auto-detect current page if not provided, but only on client side to avoid hydration mismatch
+    useEffect(() => {
+        if (currentPage) {
+            setDetectedPage(currentPage);
+            return;
+        }
+
+        if (pathname === '/') setDetectedPage('search');
+        else if (pathname === '/about') setDetectedPage('about');
+        else if (pathname === '/watches') setDetectedPage('watches');
+        else if (pathname.startsWith('/book')) setDetectedPage('book');
+        else if (pathname.startsWith('/confirmation')) setDetectedPage('confirmation');
+        else if (pathname.startsWith('/destinations/')) setDetectedPage('destination');
+        else setDetectedPage('search');
+    }, [pathname, currentPage]);
     return (
         <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -34,23 +52,30 @@ export default function GlobalNavigation({ currentPage = 'search' }: NavigationP
 
                     {/* Navigation Links */}
                     <div className="flex space-x-8">
-                        <Link 
-                            href="/" 
-                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                                currentPage === 'search' 
-                                    ? 'bg-blue-100 text-blue-700' 
-                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                            }`}
+                        <Link
+                            href="/"
+                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${detectedPage === 'search'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                                }`}
                         >
                             🔍 Search Flights
                         </Link>
-                        <Link 
-                            href="/watches" 
-                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                                currentPage === 'watches' 
-                                    ? 'bg-blue-100 text-blue-700' 
-                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                            }`}
+                        <Link
+                            href="/about"
+                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${detectedPage === 'about'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                                }`}
+                        >
+                            ℹ️ About
+                        </Link>
+                        <Link
+                            href="/watches"
+                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${detectedPage === 'watches'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                                }`}
                         >
                             👁️ Price Watches
                         </Link>
@@ -64,7 +89,7 @@ export default function GlobalNavigation({ currentPage = 'search' }: NavigationP
                                     Welcome, {user.firstName}!
                                 </span>
                                 <div className="relative">
-                                    <button 
+                                    <button
                                         onClick={() => setShowUserMenu(!showUserMenu)}
                                         className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors"
                                     >
@@ -77,7 +102,7 @@ export default function GlobalNavigation({ currentPage = 'search' }: NavigationP
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                         </svg>
                                     </button>
-                                    
+
                                     {showUserMenu && (
                                         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
                                             <div className="py-1">
@@ -95,7 +120,7 @@ export default function GlobalNavigation({ currentPage = 'search' }: NavigationP
                                                     ✈️ My Bookings
                                                 </Link>
                                                 <hr className="my-1" />
-                                                <button 
+                                                <button
                                                     onClick={() => {
                                                         signOut();
                                                         setShowUserMenu(false);
@@ -111,7 +136,7 @@ export default function GlobalNavigation({ currentPage = 'search' }: NavigationP
                             </>
                         ) : (
                             <>
-                                <button 
+                                <button
                                     onClick={() => {
                                         setAuthMode('signin');
                                         setShowAuthModal(true);
@@ -121,7 +146,7 @@ export default function GlobalNavigation({ currentPage = 'search' }: NavigationP
                                 >
                                     Sign In
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => {
                                         setAuthMode('signup');
                                         setShowAuthModal(true);
@@ -138,7 +163,7 @@ export default function GlobalNavigation({ currentPage = 'search' }: NavigationP
             </div>
 
             {/* Breadcrumb for booking flow */}
-            {currentPage === 'book' && (
+            {detectedPage === 'book' && (
                 <div className="bg-gray-50 border-t border-gray-200">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
                         <div className="flex items-center space-x-2 text-sm text-gray-600">
@@ -150,7 +175,7 @@ export default function GlobalNavigation({ currentPage = 'search' }: NavigationP
                 </div>
             )}
 
-            {currentPage === 'confirmation' && (
+            {detectedPage === 'confirmation' && (
                 <div className="bg-green-50 border-t border-green-200">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
                         <div className="flex items-center space-x-2 text-sm text-green-700">
@@ -164,18 +189,30 @@ export default function GlobalNavigation({ currentPage = 'search' }: NavigationP
                 </div>
             )}
 
+            {detectedPage === 'destination' && (
+                <div className="bg-amber-50 border-t border-amber-200">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+                        <div className="flex items-center space-x-2 text-sm text-amber-700">
+                            <Link href="/about" className="hover:text-amber-800">About</Link>
+                            <span>→</span>
+                            <span className="font-medium">🗺️ Destination Guide</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Click outside to close user menu */}
             {showUserMenu && (
-                <div 
-                    className="fixed inset-0 z-40" 
+                <div
+                    className="fixed inset-0 z-40"
                     onClick={() => setShowUserMenu(false)}
                 />
             )}
 
             {/* Authentication Modal */}
-            <AuthModal 
-                isOpen={showAuthModal} 
-                onClose={() => setShowAuthModal(false)} 
+            <AuthModal
+                isOpen={showAuthModal}
+                onClose={() => setShowAuthModal(false)}
                 initialMode={authMode}
             />
         </nav>

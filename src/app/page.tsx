@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { apiPath } from '@/lib/apiBase';
 import { getCityFromIATA, normalizeToIATA } from '@/lib/iataCity';
 import { bookingCityDeeplink } from '@/lib/booking';
@@ -12,6 +13,48 @@ import { useAuth } from '@/lib/auth';
 
 // Price monitoring is handled by the /edge/watch/run endpoint
 // and can be triggered manually or via cron jobs
+
+// Helper function to convert airport codes to destination slugs
+function getDestinationSlug(airportCode: string): string {
+  const destinationMap: Record<string, string> = {
+    'FCO': 'rome',
+    'CIA': 'rome',
+    'CUN': 'cancun',
+    'LHR': 'london',
+    'LGW': 'london',
+    'STN': 'london',
+    'LTN': 'london',
+    'NRT': 'tokyo',
+    'HND': 'tokyo',
+    'CDG': 'paris',
+    'ORY': 'paris',
+    'BCN': 'barcelona',
+    'MAD': 'madrid',
+    'DUB': 'dublin',
+    'AMS': 'amsterdam',
+    'FRA': 'frankfurt',
+    'MUC': 'munich',
+    'ZUR': 'zurich',
+    'VIE': 'vienna',
+    'PRG': 'prague',
+    'WAW': 'warsaw',
+    'CPH': 'copenhagen',
+    'ARN': 'stockholm',
+    'OSL': 'oslo',
+    'HEL': 'helsinki',
+    'IST': 'istanbul',
+    'ATH': 'athens',
+    'VCE': 'venice',
+    'MIL': 'milan',
+    'NAP': 'naples',
+    'FLR': 'florence',
+    'LIS': 'lisbon',
+    'MAD': 'madrid',
+    'SVQ': 'seville'
+  };
+
+  return destinationMap[airportCode] || airportCode.toLowerCase();
+}
 
 type SearchReq = {
   origin: string;
@@ -763,6 +806,21 @@ function Home() {
                   />
                   {/* Hidden input for actual IATA code */}
                   <input type="hidden" name="destination" value={destinationIATA} />
+
+                  {/* Destination Research Link */}
+                  {destinationIATA && (
+                    <div className="mt-2">
+                      <Link
+                        href={`/destinations/${getDestinationSlug(destinationIATA)}?from=${originIATA}&airportCode=${destinationIATA}`}
+                        className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Research this destination
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1368,10 +1426,10 @@ function Home() {
                           return null;
                         }
                       })()}
-                      <button 
+                      <button
                         onClick={() => {
                           if (!searchParams) return;
-                          
+
                           // Generate booking URL with flight details
                           const bookingParams = new URLSearchParams({
                             o: searchParams.origin,
@@ -1390,7 +1448,7 @@ function Home() {
 
                           // Add flight segments if available
                           if (r.components.flight?.segments) {
-                            const segmentDetails = r.components.flight.segments.map((seg: any) => 
+                            const segmentDetails = r.components.flight.segments.map((seg: any) =>
                               `${seg.departure?.iataCode || ''} → ${seg.arrival?.iataCode || ''} (${r.components.flight?.carrier})`
                             ).join('\n');
                             bookingParams.set('seg', encodeURIComponent(segmentDetails));

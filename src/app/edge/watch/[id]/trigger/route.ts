@@ -13,7 +13,7 @@ interface FlightSearchResult {
 
 // Search flights using the specified provider
 async function searchFlightsByProvider(
-    provider: "amadeus" | "skyscanner", 
+    provider: "amadeus" | "skyscanner",
     searchParams: any
 ): Promise<FlightSearchResult> {
     switch (provider) {
@@ -24,7 +24,7 @@ async function searchFlightsByProvider(
                 provider: 'amadeus',
                 sourceLink: generateAmadeusBookingLink(searchParams)
             };
-        
+
         case 'skyscanner':
             // TODO: Implement Skyscanner API integration
             console.log('🚧 Skyscanner provider not yet implemented, falling back to Amadeus');
@@ -34,7 +34,7 @@ async function searchFlightsByProvider(
                 provider: 'amadeus', // Record actual provider used
                 sourceLink: generateAmadeusBookingLink(searchParams)
             };
-        
+
         default:
             throw new Error(`Unsupported provider: ${provider}`);
     }
@@ -51,7 +51,7 @@ function generateAmadeusBookingLink(params: any): string {
         ...(params.returnDate && { return: params.returnDate }),
         adults: params.adults.toString(),
     });
-    
+
     // Could redirect to Google Flights, Expedia, or the specific airline
     return `https://www.google.com/travel/flights?${searchParams.toString()}`;
 }
@@ -210,7 +210,7 @@ export async function POST(
 
                 const searchResult = await searchFlightsByProvider(watch.provider, searchParams);
                 const flights = searchResult.flights;
-                
+
                 // Update tracking variables
                 usedProvider = searchResult.provider;
                 sourceLink = searchResult.sourceLink;

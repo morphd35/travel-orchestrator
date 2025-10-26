@@ -52,7 +52,7 @@ export default function BookingConfirmationPage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            
+
             <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
                 {/* Success Header */}
                 <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
@@ -94,7 +94,7 @@ export default function BookingConfirmationPage() {
                 {/* Production Flow Information */}
                 <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">Production Booking Flow</h2>
-                    
+
                     <div className="space-y-6">
                         <div className="flex items-start space-x-4">
                             <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -103,7 +103,7 @@ export default function BookingConfirmationPage() {
                             <div>
                                 <h3 className="font-semibold text-gray-900">Secure Payment Processing</h3>
                                 <p className="text-gray-600 mt-1">
-                                    In production, you would be redirected to <strong>Amadeus's secure payment portal</strong> or airline website 
+                                    In production, you would be redirected to <strong>Amadeus's secure payment portal</strong> or airline website
                                     to complete payment using credit card, PayPal, or other payment methods.
                                 </p>
                             </div>
@@ -116,7 +116,7 @@ export default function BookingConfirmationPage() {
                             <div>
                                 <h3 className="font-semibold text-gray-900">Seat Selection</h3>
                                 <p className="text-gray-600 mt-1">
-                                    Interactive seat map allowing you to choose specific seats, with pricing for premium locations 
+                                    Interactive seat map allowing you to choose specific seats, with pricing for premium locations
                                     (extra legroom, window, aisle preferences).
                                 </p>
                             </div>
@@ -129,7 +129,7 @@ export default function BookingConfirmationPage() {
                             <div>
                                 <h3 className="font-semibold text-gray-900">Additional Services</h3>
                                 <p className="text-gray-600 mt-1">
-                                    Option to add baggage, meals, travel insurance, car rentals, and hotel bookings 
+                                    Option to add baggage, meals, travel insurance, car rentals, and hotel bookings
                                     through integrated partner services.
                                 </p>
                             </div>
@@ -202,13 +202,13 @@ export default function BookingConfirmationPage() {
 
                 {/* Action Buttons */}
                 <div className="flex justify-center space-x-4 mt-8">
-                    <Link 
+                    <Link
                         href="/"
                         className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
                         Search More Flights
                     </Link>
-                    <Link 
+                    <Link
                         href="/watches"
                         className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                     >

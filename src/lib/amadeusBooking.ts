@@ -113,7 +113,7 @@ export async function confirmFlightPrice(flightOffer: any): Promise<PriceConfirm
         } catch (error: any) {
             lastError = error;
             console.warn(`⚠️ Price confirmation attempt ${attempt} failed:`, error.message);
-            
+
             if (attempt < maxRetries) {
                 // Wait before retrying (exponential backoff)
                 const delay = attempt * 2000;
@@ -156,15 +156,15 @@ async function confirmFlightPriceAttempt(flightOffer: any): Promise<PriceConfirm
 
         if (!response.ok) {
             const errorText = await response.text();
-            
+
             if (response.status === 429) {
                 throw new AmadeusRateLimitError(`Price confirmation rate limit: ${response.status}`);
             }
-            
+
             if (response.status >= 500) {
                 throw new AmadeusProviderError(`Price confirmation server error: ${response.status}`);
             }
-            
+
             throw new Error(`Price confirmation failed: ${response.status} ${response.statusText}`);
         }
 
@@ -199,11 +199,11 @@ async function confirmFlightPriceAttempt(flightOffer: any): Promise<PriceConfirm
 
     } catch (error: any) {
         console.error('❌ Price confirmation error:', error);
-        
+
         if (error.name === 'AbortError') {
             throw new AmadeusProviderError('Price confirmation timeout');
         }
-        
+
         throw error;
     }
 }
@@ -218,7 +218,7 @@ export async function createFlightBooking(bookingRequest: BookingRequest): Promi
 
         // First, confirm the price
         const priceConfirmation = await confirmFlightPrice(bookingRequest.selectedOffer);
-        
+
         if (!priceConfirmation.offerValid) {
             throw new Error('Flight offer is no longer valid');
         }
@@ -297,20 +297,20 @@ export async function createFlightBooking(bookingRequest: BookingRequest): Promi
         if (!response.ok) {
             const errorText = await response.text();
             console.error('Booking API Error:', errorText);
-            
+
             if (response.status === 429) {
                 throw new AmadeusRateLimitError(`Booking rate limit: ${response.status}`);
             }
-            
+
             if (response.status >= 500) {
                 throw new AmadeusProviderError(`Booking server error: ${response.status}`);
             }
-            
+
             // Handle specific booking errors
             if (response.status === 400) {
                 throw new Error(`Booking validation error: ${errorText.slice(0, 500)}`);
             }
-            
+
             throw new Error(`Booking failed: ${response.status} ${response.statusText}`);
         }
 
@@ -320,7 +320,7 @@ export async function createFlightBooking(bookingRequest: BookingRequest): Promi
         // Transform to our format
         const booking = bookingData.data;
         const itinerary = booking.flightOffers[0]?.itineraries || [];
-        
+
         const confirmation: BookingConfirmation = {
             bookingReference: booking.id,
             status: booking.flightOffers[0]?.type === 'flight-offer' ? 'CONFIRMED' : 'PENDING',
@@ -334,7 +334,7 @@ export async function createFlightBooking(bookingRequest: BookingRequest): Promi
                 confirmationNumber: booking.id
             })) || [],
             itinerary: {
-                flights: itinerary.flatMap((itin: any) => 
+                flights: itinerary.flatMap((itin: any) =>
                     itin.segments?.map((segment: any) => ({
                         flightNumber: `${segment.carrierCode}${segment.number}`,
                         airline: segment.carrierCode,
@@ -357,11 +357,11 @@ export async function createFlightBooking(bookingRequest: BookingRequest): Promi
 
     } catch (error: any) {
         console.error('❌ Booking creation error:', error);
-        
+
         if (error.name === 'AbortError') {
             throw new AmadeusProviderError('Booking creation timeout');
         }
-        
+
         throw error;
     }
 }
@@ -372,7 +372,7 @@ export async function createFlightBooking(bookingRequest: BookingRequest): Promi
 export async function getFlightSeatMap(flightOffer: any): Promise<any> {
     try {
         const token = await getToken();
-        
+
         const firstSegment = flightOffer.itineraries?.[0]?.segments?.[0];
         if (!firstSegment) {
             throw new Error('No flight segments found');
@@ -423,14 +423,14 @@ export function isBookingEnabled(): boolean {
  */
 export function getBookingCapabilities() {
     const isTest = AMADEUS_HOST.includes('test.api.amadeus.com');
-    
+
     return {
         priceConfirmation: true,
         seatMaps: true,
         bookingCreation: isTest ? 'TEST_MODE' : 'PRODUCTION_REQUIRED',
         paymentRequired: !isTest,
         testMode: isTest,
-        limitations: isTest 
+        limitations: isTest
             ? ['Test bookings only', 'No real tickets issued', 'Mock payment processing']
             : ['Requires production Amadeus account', 'Real payment processing required', 'Live ticket issuance']
     };

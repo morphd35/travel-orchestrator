@@ -7,10 +7,10 @@ async function testSkyscannerIntegration() {
 
     try {
         console.log('🛫 Testing flight search with new Skyscanner integration...');
-        
+
         const searchPayload = {
             origin: 'LAX',
-            destination: 'JFK', 
+            destination: 'JFK',
             departDate: '2025-01-15',
             returnDate: '2025-01-22',
             adults: 1,
@@ -34,13 +34,13 @@ async function testSkyscannerIntegration() {
         }
 
         const data = await response.json();
-        
+
         console.log('✅ API Response received successfully!');
         console.log('📊 Search Results Summary:');
         console.log(`   • Total Flights: ${data.meta?.count || 0}`);
         console.log(`   • Data Sources: ${data.meta?.sources?.join(', ') || 'unknown'}`);
         console.log(`   • Airlines Found: ${data.meta?.airlines?.join(', ') || 'none'}`);
-        
+
         if (data.meta?.priceRange) {
             console.log(`   • Price Range: $${data.meta.priceRange.min} - $${data.meta.priceRange.max}`);
         }
@@ -62,7 +62,7 @@ async function testSkyscannerIntegration() {
 
         console.log('\n🎯 Integration Status:');
         console.log('✅ Skyscanner client initialized');
-        console.log('✅ Unified flight search working'); 
+        console.log('✅ Unified flight search working');
         console.log('✅ API endpoint updated');
         console.log('✅ Mock data includes major airlines:');
         console.log('   • American Airlines (AA)');
@@ -74,7 +74,7 @@ async function testSkyscannerIntegration() {
         console.log('2. Subscribe to Skyscanner API (free tier)');
         console.log('3. Add RAPIDAPI_KEY to .env.local');
         console.log('4. Restart server and test with real data');
-        
+
         console.log('\n🏆 SUCCESS: Skyscanner integration is ready!');
         console.log('   Even without API key, you now have access to:');
         console.log('   • American Airlines, Delta, Southwest, Spirit');

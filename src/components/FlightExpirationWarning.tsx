@@ -24,7 +24,7 @@ export default function FlightExpirationWarning({ searchTime, onRefreshNeeded }:
         const interval = setInterval(() => {
             const elapsed = Date.now() - searchTime;
             setTimeElapsed(elapsed);
-            
+
             if (elapsed > EXPIRATION_WARNING_TIME) {
                 setShowWarning(true);
             }
@@ -41,29 +41,25 @@ export default function FlightExpirationWarning({ searchTime, onRefreshNeeded }:
     const isExpired = timeElapsed > EXPIRATION_TIME;
 
     return (
-        <div className={`border-l-4 p-4 mb-4 ${
-            isExpired 
-                ? 'bg-red-50 border-red-400' 
+        <div className={`border-l-4 p-4 mb-4 ${isExpired
+                ? 'bg-red-50 border-red-400'
                 : 'bg-yellow-50 border-yellow-400'
-        }`}>
+            }`}>
             <div className="flex items-start">
                 <div className="flex-shrink-0">
-                    <span className={`text-xl ${
-                        isExpired ? 'text-red-400' : 'text-yellow-400'
-                    }`}>
+                    <span className={`text-xl ${isExpired ? 'text-red-400' : 'text-yellow-400'
+                        }`}>
                         {isExpired ? '🚫' : '⏰'}
                     </span>
                 </div>
                 <div className="ml-3 flex-1">
-                    <h3 className={`text-sm font-medium ${
-                        isExpired ? 'text-red-800' : 'text-yellow-800'
-                    }`}>
+                    <h3 className={`text-sm font-medium ${isExpired ? 'text-red-800' : 'text-yellow-800'
+                        }`}>
                         {isExpired ? 'Flight Offers Expired' : 'Flight Offers Expiring Soon'}
                     </h3>
-                    <p className={`text-sm mt-1 ${
-                        isExpired ? 'text-red-700' : 'text-yellow-700'
-                    }`}>
-                        {isExpired 
+                    <p className={`text-sm mt-1 ${isExpired ? 'text-red-700' : 'text-yellow-700'
+                        }`}>
+                        {isExpired
                             ? `These flight offers expired ${minutesElapsed - 10} minutes ago. Booking may fail.`
                             : `These flight offers were found ${minutesElapsed} minutes ago and may expire soon.`
                         }
@@ -71,11 +67,10 @@ export default function FlightExpirationWarning({ searchTime, onRefreshNeeded }:
                     <div className="mt-2">
                         <button
                             onClick={onRefreshNeeded}
-                            className={`text-sm px-3 py-1 rounded-md font-medium transition-colors ${
-                                isExpired
+                            className={`text-sm px-3 py-1 rounded-md font-medium transition-colors ${isExpired
                                     ? 'bg-red-100 text-red-800 hover:bg-red-200'
                                     : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                            }`}
+                                }`}
                         >
                             🔍 Search Fresh Flights
                         </button>

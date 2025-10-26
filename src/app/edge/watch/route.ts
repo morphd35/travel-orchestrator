@@ -59,9 +59,9 @@ export async function POST(request: NextRequest) {
             try {
                 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
                 const triggerUrl = `${baseUrl}/edge/watch/${watch.id}/trigger`;
-                
+
                 console.log(`🚀 Triggering initial check for new watch: ${watch.origin} → ${watch.destination}`);
-                
+
                 const response = await fetch(triggerUrl, {
                     method: 'POST',
                     headers: {

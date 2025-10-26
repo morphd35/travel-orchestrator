@@ -5,7 +5,7 @@ console.log('===========================================\n');
 async function testNewIntegration() {
     try {
         console.log('🧪 Testing flight search with new unified system...');
-        
+
         const searchParams = {
             originLocationCode: 'LAX',
             destinationLocationCode: 'JFK',
@@ -26,21 +26,21 @@ async function testNewIntegration() {
         }
 
         const data = await response.json();
-        
+
         console.log('\n✅ INTEGRATION SUCCESS!');
         console.log('=======================');
         console.log(`📊 Total Results: ${data.flightOffers?.length || 0}`);
         console.log(`🏢 Data Sources: ${data.sources?.join(', ') || 'unified'}`);
-        
+
         if (data.flightOffers && data.flightOffers.length > 0) {
             const airlines = [...new Set(data.flightOffers.map(f => f.validatingAirlineCodes?.[0] || 'N/A'))];
             console.log(`✈️ Airlines: ${airlines.join(', ')}`);
-            
+
             const prices = data.flightOffers.map(f => parseFloat(f.price?.total || 0));
             const minPrice = Math.min(...prices);
             const maxPrice = Math.max(...prices);
             console.log(`💰 Price Range: $${minPrice} - $${maxPrice}`);
-            
+
             console.log('\n🛫 Sample Results:');
             data.flightOffers.slice(0, 3).forEach((flight, i) => {
                 const airline = flight.validatingAirlineCodes?.[0] || 'Unknown';

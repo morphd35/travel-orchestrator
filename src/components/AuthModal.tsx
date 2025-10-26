@@ -22,7 +22,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
     const [lastName, setLastName] = useState('');
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+
     const { signIn, signUp, isLoading } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {

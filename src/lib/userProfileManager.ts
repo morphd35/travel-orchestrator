@@ -61,8 +61,8 @@ class UserProfileManager {
         try {
             const profiles = this.getPassengerProfiles(userId);
             const existingIndex = profiles.findIndex(
-                p => p.email === profile.email || 
-                (p.firstName === profile.firstName && p.lastName === profile.lastName)
+                p => p.email === profile.email ||
+                    (p.firstName === profile.firstName && p.lastName === profile.lastName)
             );
 
             if (existingIndex >= 0) {
@@ -128,7 +128,7 @@ class UserProfileManager {
         try {
             const history = this.getBookingHistory(userId);
             history.unshift(booking); // Add to beginning
-            
+
             // Keep only the 20 most recent bookings
             if (history.length > 20) {
                 history.splice(20);
@@ -191,14 +191,14 @@ class UserProfileManager {
     addRecentSearch(userId: string, search: any): void {
         try {
             const searches = this.getRecentSearches(userId);
-            
+
             // Remove duplicates
-            const filtered = searches.filter(s => 
-                !(s.origin === search.origin && 
-                  s.destination === search.destination && 
-                  s.departDate === search.departDate)
+            const filtered = searches.filter(s =>
+                !(s.origin === search.origin &&
+                    s.destination === search.destination &&
+                    s.departDate === search.departDate)
             );
-            
+
             filtered.unshift({
                 ...search,
                 searchedAt: new Date().toISOString()

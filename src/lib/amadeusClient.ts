@@ -126,20 +126,20 @@ export async function getToken(): Promise<string> {
     } catch (error: any) {
         console.error('❌ Failed to get Amadeus token:', error);
         tokenCache = null; // Clear cache on error
-        
+
         // Handle specific connection errors
         if (error.name === 'AbortError') {
             throw new AmadeusProviderError('Connection timeout to Amadeus API. Please try again later.');
         }
-        
+
         if (error.code === 'UND_ERR_CONNECT_TIMEOUT' || error.message?.includes('Connect Timeout')) {
             throw new AmadeusProviderError('Connection timeout to Amadeus API. Please try again later.');
         }
-        
+
         if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
             throw new AmadeusProviderError('Unable to connect to Amadeus API. Please check your internet connection.');
         }
-        
+
         throw error;
     }
 }
@@ -290,20 +290,20 @@ export async function searchFlights(params: FlightSearchParams): Promise<NormalF
 
     } catch (error: any) {
         console.error('❌ Flight search error:', error);
-        
+
         // Handle specific connection errors
         if (error.name === 'AbortError') {
             throw new AmadeusProviderError('Flight search timeout. Please try again later.');
         }
-        
+
         if (error.code === 'UND_ERR_CONNECT_TIMEOUT' || error.message?.includes('Connect Timeout')) {
             throw new AmadeusProviderError('Flight search timeout. Please try again later.');
         }
-        
+
         if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
             throw new AmadeusProviderError('Unable to connect to flight search service. Please check your internet connection.');
         }
-        
+
         throw error;
     }
 }

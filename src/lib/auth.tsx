@@ -55,7 +55,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             try {
                 const response = await fetch('/api/auth/me');
                 const data = await response.json();
-                
+
                 if (data.user) {
                     setUser(data.user);
                 }
@@ -72,7 +72,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const signIn = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
         try {
             setIsLoading(true);
-            
+
             const response = await fetch('/api/auth/signin', {
                 method: 'POST',
                 headers: {
@@ -100,7 +100,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const signUp = async (email: string, password: string, firstName: string, lastName: string): Promise<{ success: boolean; error?: string }> => {
         try {
             setIsLoading(true);
-            
+
             const response = await fetch('/api/auth/signup', {
                 method: 'POST',
                 headers: {
@@ -140,7 +140,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // Update local state immediately for better UX
             const updatedUser = { ...user, ...updates };
             setUser(updatedUser);
-            
+
             // TODO: Implement API call to update user profile in database
             // For now, we'll just update the local state
             console.log('Profile update:', updates);

@@ -7,7 +7,7 @@ async function testAutomaticMonitoring() {
 
     try {
         console.log('📝 Step 1: Creating a test watch...');
-        
+
         // Create a test watch
         const watchResponse = await fetch(`${baseUrl}/edge/watch`, {
             method: 'POST',

@@ -39,7 +39,7 @@ export default function BookingsPage() {
                     console.error('Error loading user data:', error);
                 }
             };
-            
+
             loadUserData();
         }
     }, [user]);
@@ -62,7 +62,7 @@ export default function BookingsPage() {
                     <div className="text-6xl mb-4">🔒</div>
                     <h1 className="text-2xl font-bold text-gray-900 mb-4">Sign In Required</h1>
                     <p className="text-gray-600 mb-8">Please sign in to view your bookings and travel data.</p>
-                    <Link 
+                    <Link
                         href="/"
                         className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
                     >
@@ -102,7 +102,7 @@ export default function BookingsPage() {
                                 {bookings.length}
                             </span>
                         </h2>
-                        
+
                         {bookings.length > 0 ? (
                             <div className="space-y-4">
                                 {bookings.slice(0, 3).map((booking, index) => (
@@ -128,7 +128,7 @@ export default function BookingsPage() {
                             <div className="text-center py-8">
                                 <div className="text-4xl mb-4">📝</div>
                                 <p className="text-gray-500">No bookings yet</p>
-                                <Link 
+                                <Link
                                     href="/"
                                     className="text-blue-600 hover:text-blue-700 text-sm mt-2 inline-block"
                                 >
@@ -146,7 +146,7 @@ export default function BookingsPage() {
                                 {watches.length}
                             </span>
                         </h2>
-                        
+
                         {watches.length > 0 ? (
                             <div className="space-y-4">
                                 {watches.slice(0, 3).map((watch, index) => (
@@ -172,7 +172,7 @@ export default function BookingsPage() {
                             <div className="text-center py-8">
                                 <div className="text-4xl mb-4">👀</div>
                                 <p className="text-gray-500">No price watches</p>
-                                <Link 
+                                <Link
                                     href="/watches"
                                     className="text-blue-600 hover:text-blue-700 text-sm mt-2 inline-block"
                                 >
@@ -190,7 +190,7 @@ export default function BookingsPage() {
                                 {recentSearches.length}
                             </span>
                         </h2>
-                        
+
                         {recentSearches.length > 0 ? (
                             <div className="space-y-4">
                                 {recentSearches.slice(0, 3).map((search, index) => (
@@ -216,7 +216,7 @@ export default function BookingsPage() {
                             <div className="text-center py-8">
                                 <div className="text-4xl mb-4">🔍</div>
                                 <p className="text-gray-500">No recent searches</p>
-                                <Link 
+                                <Link
                                     href="/"
                                     className="text-blue-600 hover:text-blue-700 text-sm mt-2 inline-block"
                                 >

@@ -1,8 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import AuthModal from './AuthModal';
+
+// Helper function to convert airport codes to destination slugs
+function getDestinationSlug(airportCode: string): string {
+    const destinationMap: Record<string, string> = {
+        'FCO': 'rome', 'CIA': 'rome', 'CUN': 'cancun', 'LHR': 'london', 'LGW': 'london',
+        'STN': 'london', 'LTN': 'london', 'NRT': 'tokyo', 'HND': 'tokyo', 'CDG': 'paris',
+        'ORY': 'paris', 'BCN': 'barcelona', 'MAD': 'madrid', 'DUB': 'dublin', 'AMS': 'amsterdam'
+    };
+    return destinationMap[airportCode] || airportCode.toLowerCase();
+}
 
 interface PriceWatchModalProps {
     isOpen: boolean;
@@ -25,7 +36,7 @@ export default function PriceWatchModal({ isOpen, onClose, flightInfo }: PriceWa
     const { user } = useAuth();
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
-    
+
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -120,7 +131,7 @@ export default function PriceWatchModal({ isOpen, onClose, flightInfo }: PriceWa
                             <p className="text-gray-600 mb-6">
                                 Please sign in to your account to create price watches and receive notifications when flight prices change.
                             </p>
-                            
+
                             <div className="flex flex-col sm:flex-row gap-3">
                                 <button
                                     onClick={() => setShowAuthModal(true)}
@@ -139,9 +150,9 @@ export default function PriceWatchModal({ isOpen, onClose, flightInfo }: PriceWa
                     </div>
                 </div>
 
-                <AuthModal 
-                    isOpen={showAuthModal} 
-                    onClose={() => setShowAuthModal(false)} 
+                <AuthModal
+                    isOpen={showAuthModal}
+                    onClose={() => setShowAuthModal(false)}
                     initialMode={authMode}
                 />
             </>
@@ -344,6 +355,26 @@ export default function PriceWatchModal({ isOpen, onClose, flightInfo }: PriceWa
                             className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-20 resize-none"
                             placeholder="e.g., Anniversary trip, flexible with dates..."
                         />
+                    </div>
+
+                    {/* Destination Research Link */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h4 className="font-semibold text-blue-900 text-sm">Research Your Destination</h4>
+                                <p className="text-blue-700 text-xs mt-1">Get travel tips, best times to visit, and pricing insights</p>
+                            </div>
+                            <Link
+                                href={`/destinations/${getDestinationSlug(flightInfo.destination)}?from=${flightInfo.origin}&airportCode=${flightInfo.destination}`}
+                                target="_blank"
+                                className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                            >
+                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                                View Guide
+                            </Link>
+                        </div>
                     </div>
 
                     {error && (

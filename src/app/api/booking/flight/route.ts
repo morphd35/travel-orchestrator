@@ -126,23 +126,23 @@ export async function POST(request: NextRequest) {
         console.log(`💰 Available prices: ${currentOffers.map(o => `${o.carrier}:$${o.total}`).join(', ')}`);
 
         // Step 2: Find matching offer with more flexible matching
-        let matchingOffer = currentOffers.find(offer => 
+        let matchingOffer = currentOffers.find(offer =>
             offer.carrier === validatedData.originalOffer.carrier &&
             Math.abs(offer.total - validatedData.originalOffer.total) <= (validatedData.originalOffer.total * 0.15) // Within 15%
         );
 
         // If exact carrier match not found, try broader price matching
         if (!matchingOffer) {
-            matchingOffer = currentOffers.find(offer => 
+            matchingOffer = currentOffers.find(offer =>
                 Math.abs(offer.total - validatedData.originalOffer.total) <= (validatedData.originalOffer.total * 0.1) // Within 10% regardless of carrier
             );
         }
 
         // If still no match, get the closest one by price
         if (!matchingOffer) {
-            matchingOffer = currentOffers.reduce((closest, current) => 
-                Math.abs(current.total - validatedData.originalOffer.total) < 
-                Math.abs(closest.total - validatedData.originalOffer.total) ? current : closest
+            matchingOffer = currentOffers.reduce((closest, current) =>
+                Math.abs(current.total - validatedData.originalOffer.total) <
+                    Math.abs(closest.total - validatedData.originalOffer.total) ? current : closest
             );
 
             console.log(`⚠️ No exact match found. Using closest: ${matchingOffer.carrier} at $${matchingOffer.total} (original: ${validatedData.originalOffer.carrier} at $${validatedData.originalOffer.total})`);
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
 
         // Step 3: Confirm current price
         const priceConfirmation = await confirmFlightPrice(matchingOffer.raw);
-        
+
         if (priceConfirmation.priceChanged) {
             return Response.json({
                 error: 'Price changed during booking',
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
                 currency: matchingOffer.currency,
                 bookedAt: new Date().toISOString()
             };
-            
+
             userProfileManager.addBookingToHistory(validatedData.userId, bookingForProfile);
             console.log(`💾 Booking saved to user profile: ${validatedData.userId}`);
         } catch (profileError) {
@@ -229,7 +229,7 @@ export async function POST(request: NextRequest) {
         }
 
         console.error('❌ Booking error:', error);
-        
+
         return Response.json({
             error: 'Booking failed',
             message: error instanceof Error ? error.message : 'An unexpected error occurred',
@@ -275,7 +275,7 @@ export async function GET(request: NextRequest) {
 
             // Re-search to get current prices
             const currentOffers = await searchFlights(validatedData.searchParams);
-            
+
             if (currentOffers.length === 0) {
                 return Response.json({
                     available: false,
@@ -283,7 +283,7 @@ export async function GET(request: NextRequest) {
                 });
             }
 
-            const matchingOffer = currentOffers.find(offer => 
+            const matchingOffer = currentOffers.find(offer =>
                 offer.carrier === validatedData.originalOffer.carrier
             ) || currentOffers[0];
 
@@ -303,7 +303,7 @@ export async function GET(request: NextRequest) {
                 });
             } catch (priceError: any) {
                 console.error('💥 Price confirmation failed:', priceError.message);
-                
+
                 // Return flight as unavailable if price confirmation fails
                 return Response.json({
                     available: false,

@@ -5,7 +5,7 @@ import { userProfileManager } from '@/lib/databaseUserProfileManager';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        
+
         const {
             origin,
             destination,
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
                     airlines: response.meta.airlines,
                     priceRange: response.meta.priceRange
                 };
-                
+
                 userProfileManager.addRecentSearch(userId, searchRecord);
                 console.log(`💾 Search recorded to user profile: ${userId}`);
             } catch (profileError) {
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
         console.error('❌ Unified flight search error:', error);
 
         return Response.json(
-            { 
+            {
                 error: 'Flight search failed. Please try again.',
                 details: error.message,
                 timestamp: new Date().toISOString()

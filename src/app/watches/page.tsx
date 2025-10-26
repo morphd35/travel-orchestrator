@@ -42,7 +42,7 @@ export default function WatchesPage() {
     // Load watches from unified Edge system, filtered by user
     const loadWatches = async () => {
         if (!user) return;
-        
+
         try {
             setLoading(true);
             const response = await fetch(`/edge/watch?userId=${user.id}`);
@@ -199,7 +199,7 @@ export default function WatchesPage() {
                         <div className="text-6xl mb-4">🔒</div>
                         <h1 className="text-2xl font-bold text-gray-900 mb-4">Sign In Required</h1>
                         <p className="text-gray-600 mb-8">Please sign in to view your price watches.</p>
-                        <a 
+                        <a
                             href="/"
                             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
                         >
@@ -333,8 +333,8 @@ export default function WatchesPage() {
                                                     <button
                                                         onClick={() => toggleWatch(watch.id, watch.active)}
                                                         className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${watch.active
-                                                                ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                                                                : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
+                                                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                                            : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
                                                             }`}
                                                     >
                                                         {watch.active ? '✅ Active' : '⏸️ Paused'}

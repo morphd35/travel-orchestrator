@@ -61,7 +61,7 @@ const STORAGE_KEY = 'travel_orchestrator_profile';
 
 export class UserProfileManager {
     private static instance: UserProfileManager;
-    
+
     static getInstance(): UserProfileManager {
         if (!UserProfileManager.instance) {
             UserProfileManager.instance = new UserProfileManager();
@@ -111,9 +111,9 @@ export class UserProfileManager {
      */
     savePassengerProfile(passenger: Omit<PassengerProfile, 'id' | 'createdAt' | 'lastUsed'>): PassengerProfile {
         const profile = this.getUserProfile();
-        
-        const existingIndex = profile.passengers.findIndex(p => 
-            p.firstName === passenger.firstName && 
+
+        const existingIndex = profile.passengers.findIndex(p =>
+            p.firstName === passenger.firstName &&
             p.lastName === passenger.lastName &&
             p.dateOfBirth === passenger.dateOfBirth
         );
@@ -164,8 +164,8 @@ export class UserProfileManager {
      */
     addRecentSearch(origin: string, destination: string): void {
         const profile = this.getUserProfile();
-        
-        const existingIndex = profile.recentSearches.findIndex(s => 
+
+        const existingIndex = profile.recentSearches.findIndex(s =>
             s.origin === origin && s.destination === destination
         );
 

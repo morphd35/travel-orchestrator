@@ -40,7 +40,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
     const { user } = useAuth();
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
-    
+
     const [passengers, setPassengers] = useState<PassengerInfo[]>(
         Array.from({ length: flightDetails.adults }, () => ({
             firstName: '',
@@ -88,7 +88,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                             <p className="text-gray-600 mb-6">
                                 Please sign in to your account to book flights and manage your travel history.
                             </p>
-                            
+
                             <div className="flex flex-col sm:flex-row gap-3">
                                 <button
                                     onClick={() => setShowAuthModal(true)}
@@ -107,9 +107,9 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                     </div>
                 </div>
 
-                <AuthModal 
-                    isOpen={showAuthModal} 
-                    onClose={() => setShowAuthModal(false)} 
+                <AuthModal
+                    isOpen={showAuthModal}
+                    onClose={() => setShowAuthModal(false)}
                     initialMode={authMode}
                 />
             </>
@@ -180,9 +180,9 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
     };
 
     const isPassengerValid = (passenger: PassengerInfo) => {
-        return passenger.firstName && 
-               passenger.lastName && 
-               passenger.dateOfBirth;
+        return passenger.firstName &&
+            passenger.lastName &&
+            passenger.dateOfBirth;
     };
 
     const canProceedFromPassengerInfo = () => {
@@ -190,11 +190,11 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
     };
 
     const canProceedFromContactInfo = () => {
-        return contactInfo.email && 
-               contactInfo.phone.number && 
-               contactInfo.address.lines[0] && 
-               contactInfo.address.cityName && 
-               contactInfo.address.postalCode;
+        return contactInfo.email &&
+            contactInfo.phone.number &&
+            contactInfo.address.lines[0] &&
+            contactInfo.address.cityName &&
+            contactInfo.address.postalCode;
     };
 
     const handlePriceCheck = async () => {
@@ -288,7 +288,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
             }
 
             console.log('✅ Booking successful:', data.booking);
-            
+
             // Passenger profiles will be saved server-side in the booking API
             // This keeps the client-side simple and avoids database import issues
 
@@ -299,13 +299,13 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                 currency: flightDetails.currency
             });
             window.location.href = `/confirmation?${params.toString()}`;
-            
+
             // Still call the parent callback for any additional handling
             onBookingComplete(data.booking);
 
         } catch (error: any) {
             console.error('❌ Booking error:', error);
-            
+
             // Handle specific error types with user-friendly messages
             if (error.message === 'FLIGHT_UNAVAILABLE') {
                 setError('⚠️ This flight is no longer available. Flight offers expire quickly. Please search for new flights.');
@@ -318,7 +318,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
             } else {
                 setError(`❌ Booking failed: ${error.message}. Please try again or search for new flights.`);
             }
-            
+
             setStep('review'); // Go back to review step
         } finally {
             setLoading(false);
@@ -334,10 +334,10 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                         <div className="text-yellow-500 text-5xl mb-4">⚠️</div>
                         <h2 className="text-2xl font-bold text-gray-800 mb-4">Booking Coming Soon</h2>
                         <p className="text-gray-600 mb-6">
-                            Direct flight booking is currently being set up and will be available soon. 
+                            Direct flight booking is currently being set up and will be available soon.
                             For now, you can use the flight details to book directly with the airline.
                         </p>
-                        
+
                         {bookingCapabilities.capabilities && (
                             <div className="bg-blue-50 rounded-lg p-4 mb-6 text-left">
                                 <h3 className="font-semibold text-blue-800 mb-2">Current Status:</h3>
@@ -366,7 +366,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
             <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                
+
                 {/* Header */}
                 <div className="bg-blue-600 text-white p-6">
                     <div className="flex items-center justify-between">
@@ -383,16 +383,15 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                             ×
                         </button>
                     </div>
-                    
+
                     {/* Progress Steps */}
                     <div className="flex items-center mt-6 space-x-4">
                         {['passenger-info', 'contact-info', 'review', 'processing'].map((stepName, index) => (
                             <div key={stepName} className="flex items-center">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                                    step === stepName ? 'bg-white text-blue-600' :
-                                    ['passenger-info', 'contact-info', 'review'].indexOf(step) > index ? 'bg-blue-800 text-blue-200' :
-                                    'bg-blue-500 text-blue-100'
-                                }`}>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === stepName ? 'bg-white text-blue-600' :
+                                        ['passenger-info', 'contact-info', 'review'].indexOf(step) > index ? 'bg-blue-800 text-blue-200' :
+                                            'bg-blue-500 text-blue-100'
+                                    }`}>
                                     {index + 1}
                                 </div>
                                 {index < 3 && <div className="w-8 h-0.5 bg-blue-400 mx-2" />}
@@ -411,7 +410,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                 <div className="ml-3 flex-1">
                                     <p className="text-red-800 font-medium">Booking Error</p>
                                     <p className="text-red-700 text-sm mt-1">{error}</p>
-                                    
+
                                     {/* Action buttons for flight availability errors */}
                                     {(error.includes('no longer available') || error.includes('timeout') || error.includes('confirm current flight prices')) && (
                                         <div className="mt-3 flex space-x-3">
@@ -440,13 +439,13 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                             <h3 className="text-xl font-bold text-gray-800 mb-6">
                                 Passenger Information ({passengers.length} passenger{passengers.length > 1 ? 's' : ''})
                             </h3>
-                            
+
                             {passengers.map((passenger, index) => (
                                 <div key={index} className="border border-gray-200 rounded-lg p-6 mb-6">
                                     <h4 className="text-lg font-semibold text-gray-700 mb-4">
                                         Passenger {index + 1}
                                     </h4>
-                                    
+
                                     <div className="grid md:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -460,7 +459,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                                 placeholder="Enter first name"
                                             />
                                         </div>
-                                        
+
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                                 Last Name *
@@ -473,7 +472,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                                 placeholder="Enter last name"
                                             />
                                         </div>
-                                        
+
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                                 Date of Birth *
@@ -485,7 +484,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             />
                                         </div>
-                                        
+
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                                 Gender *
@@ -499,12 +498,12 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                                 <option value="FEMALE">Female</option>
                                             </select>
                                         </div>
-                                        
+
 
                                     </div>
                                 </div>
                             ))}
-                            
+
                             <div className="flex justify-between">
                                 <button
                                     onClick={onCancel}
@@ -527,7 +526,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                     {step === 'contact-info' && (
                         <div>
                             <h3 className="text-xl font-bold text-gray-800 mb-6">Contact Information</h3>
-                            
+
                             <div className="grid md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -536,7 +535,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                     <input
                                         type="email"
                                         value={contactInfo.email}
-                                        onChange={(e) => setContactInfo({...contactInfo, email: e.target.value})}
+                                        onChange={(e) => setContactInfo({ ...contactInfo, email: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         placeholder="contact@example.com"
                                     />
@@ -544,7 +543,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                         Booking confirmation will be sent to this email
                                     </p>
                                 </div>
-                                
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Contact Phone *
@@ -553,8 +552,8 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                         <select
                                             value={contactInfo.phone.countryCode}
                                             onChange={(e) => setContactInfo({
-                                                ...contactInfo, 
-                                                phone: {...contactInfo.phone, countryCode: e.target.value}
+                                                ...contactInfo,
+                                                phone: { ...contactInfo.phone, countryCode: e.target.value }
                                             })}
                                             className="px-3 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         >
@@ -567,8 +566,8 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                             type="tel"
                                             value={contactInfo.phone.number}
                                             onChange={(e) => setContactInfo({
-                                                ...contactInfo, 
-                                                phone: {...contactInfo.phone, number: e.target.value}
+                                                ...contactInfo,
+                                                phone: { ...contactInfo.phone, number: e.target.value }
                                             })}
                                             className="flex-1 px-3 py-2 border border-l-0 border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             placeholder="1234567890"
@@ -576,7 +575,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div className="mt-6">
                                 <h4 className="text-lg font-medium text-gray-800 mb-4">Billing Address *</h4>
                                 <div className="grid md:grid-cols-2 gap-6">
@@ -588,14 +587,14 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                             type="text"
                                             value={contactInfo.address.lines[0]}
                                             onChange={(e) => setContactInfo({
-                                                ...contactInfo, 
-                                                address: {...contactInfo.address, lines: [e.target.value]}
+                                                ...contactInfo,
+                                                address: { ...contactInfo.address, lines: [e.target.value] }
                                             })}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             placeholder="123 Main Street"
                                         />
                                     </div>
-                                    
+
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             City *
@@ -604,14 +603,14 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                             type="text"
                                             value={contactInfo.address.cityName}
                                             onChange={(e) => setContactInfo({
-                                                ...contactInfo, 
-                                                address: {...contactInfo.address, cityName: e.target.value}
+                                                ...contactInfo,
+                                                address: { ...contactInfo.address, cityName: e.target.value }
                                             })}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             placeholder="New York"
                                         />
                                     </div>
-                                    
+
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             Postal Code *
@@ -620,14 +619,14 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                             type="text"
                                             value={contactInfo.address.postalCode}
                                             onChange={(e) => setContactInfo({
-                                                ...contactInfo, 
-                                                address: {...contactInfo.address, postalCode: e.target.value}
+                                                ...contactInfo,
+                                                address: { ...contactInfo.address, postalCode: e.target.value }
                                             })}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             placeholder="10001"
                                         />
                                     </div>
-                                    
+
                                     <div className="md:col-span-2">
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             Country *
@@ -635,8 +634,8 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                         <select
                                             value={contactInfo.address.countryCode}
                                             onChange={(e) => setContactInfo({
-                                                ...contactInfo, 
-                                                address: {...contactInfo.address, countryCode: e.target.value}
+                                                ...contactInfo,
+                                                address: { ...contactInfo.address, countryCode: e.target.value }
                                             })}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         >
@@ -651,7 +650,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div className="flex justify-between mt-6">
                                 <button
                                     onClick={() => setStep('passenger-info')}
@@ -674,7 +673,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                     {step === 'review' && (
                         <div>
                             <h3 className="text-xl font-bold text-gray-800 mb-6">Review Your Booking</h3>
-                            
+
                             {/* Flight Summary */}
                             <div className="bg-blue-50 rounded-lg p-6 mb-6">
                                 <h4 className="text-lg font-semibold text-blue-800 mb-4">Flight Details</h4>
@@ -699,7 +698,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                     )}
                                 </div>
                             </div>
-                            
+
                             {/* Passenger Summary */}
                             <div className="bg-gray-50 rounded-lg p-6 mb-6">
                                 <h4 className="text-lg font-semibold text-gray-800 mb-4">Passengers</h4>
@@ -710,7 +709,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                     </div>
                                 ))}
                             </div>
-                            
+
                             {/* Important Notice */}
                             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
                                 <div className="flex">
@@ -725,7 +724,7 @@ export default function BookingForm({ flightDetails, onBookingComplete, onCancel
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div className="flex justify-between">
                                 <button
                                     onClick={() => setStep('contact-info')}

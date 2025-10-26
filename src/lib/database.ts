@@ -196,95 +196,95 @@ try {
 
 // Database utility functions
 export const dbQueries = {
-  // User management
-  createUser: db.prepare(`
+    // User management
+    createUser: db.prepare(`
     INSERT INTO users (id, email, password_hash, first_name, last_name, phone, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `),
-  
-  getUserByEmail: db.prepare(`
+
+    getUserByEmail: db.prepare(`
     SELECT * FROM users WHERE email = ?
   `),
-  
-  getUserById: db.prepare(`
+
+    getUserById: db.prepare(`
     SELECT * FROM users WHERE id = ?
   `),
-  
-  updateUser: db.prepare(`
+
+    updateUser: db.prepare(`
     UPDATE users SET 
       first_name = ?, last_name = ?, phone = ?, preferred_airlines = ?, 
       preferred_airports = ?, seat_preference = ?, meal_preference = ?, 
       updated_at = ?
     WHERE id = ?
   `),
-  
-  // Session management
-  createSession: db.prepare(`
+
+    // Session management
+    createSession: db.prepare(`
     INSERT INTO sessions (id, user_id, token_hash, expires_at, created_at)
     VALUES (?, ?, ?, ?, ?)
   `),
-  
-  getSession: db.prepare(`
+
+    getSession: db.prepare(`
     SELECT s.*, u.* FROM sessions s
     JOIN users u ON s.user_id = u.id
     WHERE s.token_hash = ? AND s.expires_at > ?
   `),
-  
-  deleteSession: db.prepare(`
+
+    deleteSession: db.prepare(`
     DELETE FROM sessions WHERE token_hash = ?
   `),
-  
-  deleteExpiredSessions: db.prepare(`
+
+    deleteExpiredSessions: db.prepare(`
     DELETE FROM sessions WHERE expires_at <= ?
   `),
-  
-  // Booking management
-  createBooking: db.prepare(`
+
+    // Booking management
+    createBooking: db.prepare(`
     INSERT INTO bookings (
       id, user_id, booking_reference, origin, destination, depart_date, 
       return_date, passengers, passenger_details, total_amount, currency, 
       airline, booking_date, status, contact_email, created_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `),
-  
-  getUserBookings: db.prepare(`
+
+    getUserBookings: db.prepare(`
     SELECT * FROM bookings WHERE user_id = ? ORDER BY created_at DESC
   `),
-  
-  // Search history management
-  createSearch: db.prepare(`
+
+    // Search history management
+    createSearch: db.prepare(`
     INSERT INTO searches (
       id, user_id, origin, destination, depart_date, return_date,
       adults, children, infants, cabin_class, currency, result_count,
       airlines, price_range, searched_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `),
-  
-  getUserSearches: db.prepare(`
+
+    getUserSearches: db.prepare(`
     SELECT * FROM searches WHERE user_id = ? ORDER BY searched_at DESC LIMIT 10
   `),
-  
-  // Passenger profiles management
-  createPassengerProfile: db.prepare(`
+
+    // Passenger profiles management
+    createPassengerProfile: db.prepare(`
     INSERT INTO passenger_profiles (
       id, user_id, first_name, last_name, date_of_birth, gender,
       email, phone, address, created_at, updated_at
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `),
-  
-  getUserPassengerProfiles: db.prepare(`
+
+    getUserPassengerProfiles: db.prepare(`
     SELECT * FROM passenger_profiles WHERE user_id = ? ORDER BY updated_at DESC LIMIT 5
   `),
-  
-  updatePassengerProfile: db.prepare(`
+
+    updatePassengerProfile: db.prepare(`
     UPDATE passenger_profiles SET 
       first_name = ?, last_name = ?, date_of_birth = ?, gender = ?,
       email = ?, phone = ?, address = ?, updated_at = ?
     WHERE id = ?
   `),
-  
-  // Watch management (updated to include user_id)
-  getUserWatches: db.prepare(`
+
+    // Watch management (updated to include user_id)
+    getUserWatches: db.prepare(`
     SELECT * FROM watches WHERE userId = ? ORDER BY createdAt DESC
   `)
 };
