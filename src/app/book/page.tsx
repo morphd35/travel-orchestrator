@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getAirlineName, getAirportName, formatStopsInfo } from '@/lib/airlineUtils';
 import BookingForm from '@/components/BookingForm';
@@ -21,7 +21,7 @@ interface FlightBookingDetails {
     adults: number;
 }
 
-export default function BookFlightPage() {
+function BookFlightContent() {
     const searchParams = useSearchParams();
     const [flight, setFlight] = useState<FlightBookingDetails | null>(null);
     const [loading, setLoading] = useState(true);
@@ -467,5 +467,22 @@ Found by Travel Conductor - ${new Date().toLocaleDateString()}
                 </div>
             )}
         </div>
+    );
+}
+
+export default function BookFlightPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-gray-50">
+                <div className="flex items-center justify-center h-64">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                        <p className="mt-4 text-gray-600">Loading flight details...</p>
+                    </div>
+                </div>
+            </div>
+        }>
+            <BookFlightContent />
+        </Suspense>
     );
 }
