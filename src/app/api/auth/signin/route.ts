@@ -79,19 +79,25 @@ export async function POST(request: NextRequest) {
             { expiresIn: '7d' }
         );
 
-        // Store session in database
-        const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const tokenHash = await bcrypt.hash(token, 10);
-        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
-        const now = new Date().toISOString();
+        // Store session in database (only if database is writable)
+        try {
+            const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            const tokenHash = await bcrypt.hash(token, 10);
+            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
+            const now = new Date().toISOString();
 
-        dbQueries.createSession.run(
-            sessionId,
-            user.id,
-            tokenHash,
-            expiresAt,
-            now
-        );
+            dbQueries.createSession.run(
+                sessionId,
+                user.id,
+                tokenHash,
+                expiresAt,
+                now
+            );
+            console.log(`✅ Session created for ${user.email}`);
+        } catch (sessionError) {
+            console.warn(`⚠️ Could not create session in database (likely read-only): ${sessionError}`);
+            // Continue anyway - token-based auth will still work
+        }
 
         // Return user data (without password)
         const userData = {
