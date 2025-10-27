@@ -135,9 +135,13 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
                                                 >
                                                     ⚙️ Settings
                                                 </button>
-                                                <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                <Link 
+                                                    href="/profile"
+                                                    onClick={() => setShowUserMenu(false)}
+                                                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                                >
                                                     👤 Profile
-                                                </button>
+                                                </Link>
                                                 <Link href="/bookings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                                     ✈️ My Bookings
                                                 </Link>
