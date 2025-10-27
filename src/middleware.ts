@@ -25,18 +25,18 @@ const PUBLIC_PATHS = [
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   // Handle CORS for API routes
   if (pathname.startsWith('/api')) {
     const response = NextResponse.next();
-    
+
     response.headers.set('Access-Control-Allow-Origin', '*');
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
-    
+
     return response;
   }
-  
+
   // Allow public paths
   if (PUBLIC_PATHS.some(path => pathname === path)) {
     return NextResponse.next();
@@ -45,17 +45,17 @@ export function middleware(request: NextRequest) {
   // Check for access in cookies
   const accessCode = request.cookies.get('travel-access-code')?.value;
   const userEmail = request.cookies.get('travel-user-email')?.value;
-  
+
   // Allow if has valid access code
   if (accessCode && ALLOWED_ACCESS_CODES.includes(accessCode)) {
     return NextResponse.next();
   }
-  
+
   // Allow if user email is in allowed list
   if (userEmail && ALLOWED_EMAILS.includes(userEmail)) {
     return NextResponse.next();
   }
-  
+
   // Redirect to access page for protected paths
   return NextResponse.redirect(new URL('/access', request.url));
 }

@@ -11,14 +11,14 @@ export default function LandingPage() {
   const handleAccessRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       const response = await fetch('/api/access-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, message }),
       });
-      
+
       if (response.ok) {
         alert('Access request submitted successfully! We\'ll review it and get back to you.');
         setEmail('');
@@ -66,7 +66,7 @@ export default function LandingPage() {
                 </span>
               </h1>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-                Advanced flight search, intelligent price monitoring, and curated travel experiences. 
+                Advanced flight search, intelligent price monitoring, and curated travel experiences.
                 Currently in private beta while we partner with leading travel providers.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -95,7 +95,7 @@ export default function LandingPage() {
                 Revolutionizing Travel Search
               </h2>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Travel Conductor combines cutting-edge technology with travel expertise to deliver 
+                Travel Conductor combines cutting-edge technology with travel expertise to deliver
                 unparalleled search capabilities and pricing intelligence.
               </p>
             </div>
@@ -148,7 +148,7 @@ export default function LandingPage() {
                   </div>
                   <h4 className="text-xl font-bold text-gray-900 mb-2">Currently in Development</h4>
                   <p className="text-gray-600">
-                    We're working with select partners to build the most comprehensive travel platform. 
+                    We're working with select partners to build the most comprehensive travel platform.
                     Request access to be part of our exclusive beta program.
                   </p>
                 </div>
