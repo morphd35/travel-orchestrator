@@ -8,6 +8,7 @@
  */
 
 let monitoringInterval: NodeJS.Timeout | null = null;
+let isMonitoringStarted = false; // Prevent multiple instances
 const MONITORING_FREQUENCY = 30 * 60 * 1000; // 30 minutes for production
 
 async function runWatchMonitoring() {
@@ -21,7 +22,7 @@ async function runWatchMonitoring() {
         // Quick health check first in development
         if (process.env.NODE_ENV === 'development') {
             try {
-                const healthCheck = await fetch(`${baseUrl}/api/health`, {
+                const healthCheck = await fetch(`${baseUrl}/health`, {
                     method: 'GET',
                     headers: { 'User-Agent': 'background-monitor/health-check' }
                 });
@@ -64,15 +65,20 @@ async function runWatchMonitoring() {
     }
 }
 
-// Only run on server side
-if (typeof window === 'undefined' && typeof process !== 'undefined') {
-    console.log('🚀 Starting background watch monitoring service...');
-    console.log(`⏰ Monitoring frequency: every ${MONITORING_FREQUENCY / 1000} seconds`);
+// Only run on server side and prevent multiple instances
+if (typeof window === 'undefined' && typeof process !== 'undefined' && !isMonitoringStarted) {
+    isMonitoringStarted = true;
 
-    // Initial check after 5 minutes (let server fully start and stabilize)
+    console.log('🚀 Starting background watch monitoring service...');
+    console.log(`⏰ Monitoring frequency: every ${MONITORING_FREQUENCY / 60 / 1000} minutes`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'unknown'}`);
+    console.log(`🔗 Base URL: ${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}`);
+
+    // Initial check after 2 minutes in development, 5 minutes in production (let server fully start and stabilize)
+    const initialDelay = process.env.NODE_ENV === 'development' ? 2 * 60 * 1000 : 5 * 60 * 1000;
     setTimeout(() => {
         runWatchMonitoring();
-    }, 5 * 60 * 1000);
+    }, initialDelay);
 
     // Then check at configured frequency
     monitoringInterval = setInterval(() => {
@@ -83,6 +89,7 @@ if (typeof window === 'undefined' && typeof process !== 'undefined') {
     process.on('SIGINT', () => {
         if (monitoringInterval) {
             clearInterval(monitoringInterval);
+            isMonitoringStarted = false;
             console.log('⏹️ Background watch monitoring stopped');
         }
     });
@@ -90,6 +97,7 @@ if (typeof window === 'undefined' && typeof process !== 'undefined') {
     process.on('SIGTERM', () => {
         if (monitoringInterval) {
             clearInterval(monitoringInterval);
+            isMonitoringStarted = false;
             console.log('⏹️ Background watch monitoring stopped');
         }
     });

@@ -1,7 +1,21 @@
 'use client';
 
 /**
- * Global Navigation Component
+ * Global Na        if (pathname === '/s                        <Link
+                            href="/search"
+                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${detectedPage === 'search'
+                                ? 'bg-blue-100 text-blue-700' 
+                                : 'text-gray-700 hover:text-blue-600'
+                            }`}
+                        >
+                            🔍 Search Flights
+                        </Link>etDetectedPage('search');
+        else if (pathname === '/about') setDetectedPage('about');
+        else if (pathname === '/watches') setDetectedPage('watches');
+        else if (pathname.startsWith('/book')) setDetectedPage('book');
+        else if (pathname.startsWith('/confirmation')) setDetectedPage('confirmation');
+        else if (pathname.startsWith('/destinations')) setDetectedPage('destination');
+        else setDetectedPage('search');n Component
  * Provides consistent navigation across all pages with breadcrumbs and authentication
  */
 
@@ -10,6 +24,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import AuthModal from './AuthModal';
+import SettingsModal from './SettingsModal';
 
 interface NavigationProps {
     currentPage?: 'search' | 'book' | 'watches' | 'confirmation' | 'about' | 'destination';
@@ -19,6 +34,7 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
     const { user, signOut, isLoading } = useAuth();
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+    const [showSettingsModal, setShowSettingsModal] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
     const pathname = usePathname();
     const [detectedPage, setDetectedPage] = useState<string>(currentPage || 'search');
@@ -39,15 +55,15 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
         else setDetectedPage('search');
     }, [pathname, currentPage]);
     return (
-        <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-16">
+        <nav className="bg-slate-900/95 backdrop-blur-xl border-b border-emerald-500/20 sticky top-0 z-50">
+            <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+                <div className="flex justify-between items-center h-14">
                     {/* Logo */}
-                    <Link href="/" className="flex items-center space-x-2">
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                            <span className="text-white text-sm">✈️</span>
+                    <Link href="/" className="flex items-center space-x-3">
+                        <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                            <span className="text-white text-xs">✈️</span>
                         </div>
-                        <span className="text-xl font-semibold text-gray-900">Travel Conductor</span>
+                        <span className="text-lg font-light text-white tracking-wide">Travel Conductor</span>
                     </Link>
 
                     {/* Navigation Links */}
@@ -110,7 +126,13 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
                                                     <p className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</p>
                                                     <p className="text-sm text-gray-500">{user.email}</p>
                                                 </div>
-                                                <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                <button
+                                                    onClick={() => {
+                                                        setShowSettingsModal(true);
+                                                        setShowUserMenu(false);
+                                                    }}
+                                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                                >
                                                     ⚙️ Settings
                                                 </button>
                                                 <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
@@ -167,7 +189,7 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
                 <div className="bg-gray-50 border-t border-gray-200">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
                         <div className="flex items-center space-x-2 text-sm text-gray-600">
-                            <Link href="/" className="hover:text-blue-600">Search</Link>
+                            <Link href="/search" className="hover:text-blue-600">Search</Link>
                             <span>→</span>
                             <span className="text-blue-600 font-medium">Book Flight</span>
                         </div>
@@ -179,7 +201,7 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
                 <div className="bg-green-50 border-t border-green-200">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
                         <div className="flex items-center space-x-2 text-sm text-green-700">
-                            <Link href="/" className="hover:text-green-800">Search</Link>
+                            <Link href="/search" className="hover:text-green-800">Search</Link>
                             <span>→</span>
                             <Link href="#" className="hover:text-green-800">Book</Link>
                             <span>→</span>
@@ -214,6 +236,12 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
                 isOpen={showAuthModal}
                 onClose={() => setShowAuthModal(false)}
                 initialMode={authMode}
+            />
+
+            {/* Settings Modal */}
+            <SettingsModal
+                isOpen={showSettingsModal}
+                onClose={() => setShowSettingsModal(false)}
             />
         </nav>
     );

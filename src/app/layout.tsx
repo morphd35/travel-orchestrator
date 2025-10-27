@@ -3,11 +3,13 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import GlobalNavigation from "@/components/GlobalNavigation";
 import { AuthProvider } from "@/lib/auth";
+import { ThemeProvider } from "@/lib/themeContext";
 
-// Initialize background watch monitoring (server-side only)
-if (typeof window === 'undefined') {
-  import('@/lib/backgroundMonitor');
-}
+// Background monitoring disabled - not suitable for Next.js server architecture
+// Use external cron jobs or serverless functions for production monitoring
+// if (typeof window === 'undefined') {
+//   import('@/lib/backgroundMonitor');
+// }
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,10 +22,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${inter.className} antialiased`}>
-        <AuthProvider>
-          <GlobalNavigation />
-          {children}
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <GlobalNavigation />
+            {children}
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
