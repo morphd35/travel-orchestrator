@@ -13,11 +13,33 @@ export default function AccessPage() {
         setIsSubmitting(true);
         setError('');
 
-        // Set access code in cookie and redirect
-        document.cookie = `travel-access-code=${accessCode}; path=/; max-age=${60 * 60 * 24 * 30}`; // 30 days
+        try {
+            // Validate access code with server
+            const response = await fetch('/api/access-code/validate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ accessCode }),
+            });
 
-        // Try to redirect to search page
-        window.location.href = '/search';
+            const result = await response.json();
+
+            if (!result.valid) {
+                setError('Invalid or expired access code. Please contact the administrator.');
+                setIsSubmitting(false);
+                return;
+            }
+
+            // Set access code in cookie and redirect (7 days for partner security)
+            document.cookie = `travel-access-code=${accessCode}; path=/; max-age=${60 * 60 * 24 * 7}`; // 7 days
+
+            // Try to redirect to search page
+            window.location.href = '/search';
+        } catch (error) {
+            setError('Unable to validate access code. Please try again.');
+            setIsSubmitting(false);
+        }
     };
 
     return (

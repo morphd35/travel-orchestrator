@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
         // Check if user exists
         const user = dbQueries.getUserByEmail.get(email) as any;
-        
+
         if (!user) {
             // Don't reveal if email exists or not for security
             return NextResponse.json(
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
         const timestamp = Math.floor(Date.now() / (15 * 60 * 1000)); // 15-minute windows
         const tempPasswordSeed = `${email}-${timestamp}-${process.env.JWT_SECRET}`;
         const tempPassword = require('crypto').createHash('md5').update(tempPasswordSeed).digest('hex').slice(0, 8).toUpperCase();
-        
+
         console.log(`🔑 Generated temp password for ${email}: ${tempPassword} (timestamp: ${timestamp})`);
         console.log(`🔧 Seed: ${tempPasswordSeed}`);
 

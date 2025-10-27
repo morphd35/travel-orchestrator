@@ -24,13 +24,13 @@ export function storeTempPassword(email: string, hashedPassword: string) {
 export function getTempPassword(email: string): string | null {
     const data = tempPasswords.get(email);
     if (!data) return null;
-    
+
     // Check if expired (15 minutes)
     if (Date.now() - data.timestamp > 15 * 60 * 1000) {
         tempPasswords.delete(email);
         return null;
     }
-    
+
     return data.hashedPassword;
 }
 

@@ -4,30 +4,40 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 export default function LandingPage() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [company, setCompany] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const handleAccessRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setSubmitStatus('idle');
 
     try {
       const response = await fetch('/api/access-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, message }),
+        body: JSON.stringify({ name, email, company, message }),
       });
 
+      const result = await response.json();
+
       if (response.ok) {
-        alert('Access request submitted successfully! We\'ll review it and get back to you.');
+        setSubmitStatus('success');
+        setName('');
         setEmail('');
+        setCompany('');
         setMessage('');
       } else {
-        alert('Failed to submit request. Please try again.');
+        setSubmitStatus('error');
+        console.error('Access request failed:', result.error);
       }
     } catch (error) {
-      alert('Failed to submit request. Please try again.');
+      setSubmitStatus('error');
+      console.error('Access request error:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -59,9 +69,9 @@ export default function LandingPage() {
         <section className="py-20 lg:py-28">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
-              <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6">
+              <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-8 leading-tight">
                 The Future of
-                <span className="block bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent pb-2">
                   Travel Intelligence
                 </span>
               </h1>
@@ -216,19 +226,74 @@ export default function LandingPage() {
             </div>
 
             <div className="bg-white rounded-2xl shadow-xl p-8">
+              {submitStatus === 'success' && (
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center">
+                    <div className="w-5 h-5 text-green-500 mr-2">✓</div>
+                    <div>
+                      <h3 className="text-green-800 font-medium">Request Submitted Successfully!</h3>
+                      <p className="text-green-700 text-sm">We'll review your request and get back to you within 24 hours.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {submitStatus === 'error' && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center">
+                    <div className="w-5 h-5 text-red-500 mr-2">⚠</div>
+                    <div>
+                      <h3 className="text-red-800 font-medium">Submission Failed</h3>
+                      <p className="text-red-700 text-sm">Please check your information and try again.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <form onSubmit={handleAccessRequest} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="John Smith"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="your@company.com"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address *
+                  <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-2">
+                    Company/Organization
                   </label>
                   <input
-                    type="email"
-                    id="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    type="text"
+                    id="company"
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    placeholder="your@company.com"
+                    placeholder="Your Company Name"
                   />
                 </div>
 
@@ -248,7 +313,7 @@ export default function LandingPage() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || !email}
+                  disabled={isSubmitting || !email || !name}
                   className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-white py-3 px-6 rounded-lg font-semibold hover:from-emerald-600 hover:to-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {isSubmitting ? 'Submitting...' : 'Request Access'}

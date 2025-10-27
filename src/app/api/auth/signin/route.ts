@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
         // Emergency access for locked-out user - temporary bypass
         let isPasswordValid = false;
-        
+
         // Temporary emergency password for morphd335@yahoo.com
         if (validatedData.email === 'morphd335@yahoo.com' && validatedData.password === 'EMERGENCY123') {
             isPasswordValid = true;
@@ -37,16 +37,16 @@ export async function POST(request: NextRequest) {
             // Generate the same temporary password that would have been created in the last 15 minutes
             const currentTimestamp = Math.floor(Date.now() / (15 * 60 * 1000));
             const previousTimestamp = currentTimestamp - 1; // Also check previous 15-minute window
-            
+
             console.log(`Sign-in attempt for ${validatedData.email} with password: ${validatedData.password}`);
             console.log(`Current timestamp: ${currentTimestamp}, Previous: ${previousTimestamp}`);
-            
+
             for (const timestamp of [currentTimestamp, previousTimestamp]) {
                 const tempPasswordSeed = `${validatedData.email}-${timestamp}-${process.env.JWT_SECRET}`;
                 const expectedTempPassword = require('crypto').createHash('md5').update(tempPasswordSeed).digest('hex').slice(0, 8).toUpperCase();
-                
+
                 console.log(`Checking timestamp ${timestamp}: expected password = ${expectedTempPassword}`);
-                
+
                 if (validatedData.password === expectedTempPassword) {
                     isPasswordValid = true;
                     console.log(`✅ User ${validatedData.email} logged in with temporary password (timestamp: ${timestamp})`);
@@ -54,13 +54,13 @@ export async function POST(request: NextRequest) {
                 }
             }
         }
-        
+
         // If not a temp password, check regular password
         if (!isPasswordValid) {
             console.log(`Checking regular password for ${validatedData.email}`);
             isPasswordValid = await bcrypt.compare(validatedData.password, user.password_hash);
             console.log(`Regular password match: ${isPasswordValid}`);
-            
+
             // If regular password doesn't match, check for JWT-stored password (for read-only DB workaround)
             if (!isPasswordValid) {
                 const authToken = request.cookies.get('auth_token')?.value;
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
                 }
             }
         }
-        
+
         if (!isPasswordValid) {
             console.log(`❌ Password validation failed for ${validatedData.email}`);
             console.log(`Provided password: "${validatedData.password}"`);

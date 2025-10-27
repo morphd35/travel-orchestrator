@@ -56,15 +56,15 @@ export async function PUT(request: NextRequest) {
         if (!isCurrentPasswordValid) {
             const currentTimestamp = Math.floor(Date.now() / (15 * 60 * 1000));
             const previousTimestamp = currentTimestamp - 1; // Also check previous 15-minute window
-            
+
             console.log(`Checking temp password for user ${user.email} with password: ${validatedData.currentPassword}`);
-            
+
             for (const timestamp of [currentTimestamp, previousTimestamp]) {
                 const tempPasswordSeed = `${user.email}-${timestamp}-${process.env.JWT_SECRET}`;
                 const expectedTempPassword = require('crypto').createHash('md5').update(tempPasswordSeed).digest('hex').slice(0, 8).toUpperCase();
-                
+
                 console.log(`Checking timestamp ${timestamp}: expected temp password = ${expectedTempPassword}`);
-                
+
                 if (validatedData.currentPassword === expectedTempPassword) {
                     isCurrentPasswordValid = true;
                     console.log(`✅ User ${user.email} verified with temporary password for password change`);
@@ -92,10 +92,10 @@ export async function PUT(request: NextRequest) {
                 SET password_hash = ?, updated_at = ?
                 WHERE id = ?
             `;
-            
+
             const stmt = require('better-sqlite3')(process.env.DATABASE_PATH || './data/travel_orchestrator.db')
                 .prepare(updateQuery);
-            
+
             const now = new Date().toISOString();
             stmt.run(newPasswordHash, now, userId);
 
@@ -110,8 +110,8 @@ export async function PUT(request: NextRequest) {
 
         // Create new JWT token with updated password information
         const newToken = jwt.sign(
-            { 
-                userId: user.id, 
+            {
+                userId: user.id,
                 email: user.email,
                 passwordHash: newPasswordHash, // Include new password hash
                 passwordChanged: Date.now() // Timestamp when password was changed

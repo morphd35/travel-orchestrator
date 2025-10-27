@@ -5,10 +5,10 @@ export async function GET(request: NextRequest) {
     try {
         // Check specific user
         const user = dbQueries.getUserByEmail.get('morphd335@yahoo.com') as any;
-        
+
         // Get all users (for debugging)
         const allUsers = db.prepare('SELECT email, first_name, last_name, created_at FROM users LIMIT 10').all();
-        
+
         return NextResponse.json({
             message: 'Database status',
             targetUser: user ? 'exists' : 'not found',

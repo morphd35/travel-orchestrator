@@ -1,21 +1,7 @@
 'use client';
 
 /**
- * Global Na        if (pathname === '/s                        <Link
-                            href="/search"
-                            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${detectedPage === 'search'
-                                ? 'bg-blue-100 text-blue-700' 
-                                : 'text-gray-700 hover:text-blue-600'
-                            }`}
-                        >
-                            🔍 Search Flights
-                        </Link>etDetectedPage('search');
-        else if (pathname === '/about') setDetectedPage('about');
-        else if (pathname === '/watches') setDetectedPage('watches');
-        else if (pathname.startsWith('/book')) setDetectedPage('book');
-        else if (pathname.startsWith('/confirmation')) setDetectedPage('confirmation');
-        else if (pathname.startsWith('/destinations')) setDetectedPage('destination');
-        else setDetectedPage('search');n Component
+ * Global Navigation Component
  * Provides consistent navigation across all pages with breadcrumbs and authentication
  */
 
@@ -72,8 +58,8 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
                         <Link
                             href="/search"
                             className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${detectedPage === 'search'
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'text-gray-300 hover:text-white'
                                 }`}
                         >
                             🔍 Search Flights
@@ -81,8 +67,8 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
                         <Link
                             href="/about"
                             className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${detectedPage === 'about'
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'text-gray-300 hover:text-white'
                                 }`}
                         >
                             ℹ️ About
@@ -90,8 +76,8 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
                         <Link
                             href="/watches"
                             className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${detectedPage === 'watches'
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'text-gray-300 hover:text-white'
                                 }`}
                         >
                             👁️ Price Watches
@@ -102,16 +88,16 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
                     <div className="flex items-center space-x-4">
                         {user ? (
                             <>
-                                <span className="text-sm text-gray-600 hidden sm:inline">
+                                <span className="text-sm text-gray-300 hidden sm:inline">
                                     Welcome, {user.firstName}!
                                 </span>
                                 <div className="relative">
                                     <button
                                         onClick={() => setShowUserMenu(!showUserMenu)}
-                                        className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors"
+                                        className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
                                     >
-                                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <span className="text-blue-600 font-semibold text-sm">
+                                        <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
+                                            <span className="text-white font-semibold text-sm">
                                                 {user.firstName.charAt(0)}{user.lastName.charAt(0)}
                                             </span>
                                         </div>
@@ -136,7 +122,7 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
                                                 >
                                                     ⚙️ Settings
                                                 </button>
-                                                <Link 
+                                                <Link
                                                     href="/profile"
                                                     onClick={() => setShowUserMenu(false)}
                                                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -146,6 +132,15 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
                                                 <Link href="/bookings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                                     ✈️ My Bookings
                                                 </Link>
+                                                {user.email === 'morphd335@yahoo.com' && (
+                                                    <Link 
+                                                        href="/admin/access-requests" 
+                                                        onClick={() => setShowUserMenu(false)}
+                                                        className="block px-4 py-2 text-sm text-blue-700 hover:bg-blue-50 font-medium"
+                                                    >
+                                                        🛡️ Admin Panel
+                                                    </Link>
+                                                )}
                                                 <hr className="my-1" />
                                                 <button
                                                     onClick={() => {
@@ -168,7 +163,7 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
                                         setAuthMode('signin');
                                         setShowAuthModal(true);
                                     }}
-                                    className="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-medium transition-colors"
+                                    className="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors"
                                     disabled={isLoading}
                                 >
                                     Sign In
@@ -178,7 +173,7 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
                                         setAuthMode('signup');
                                         setShowAuthModal(true);
                                     }}
-                                    className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                                    className="bg-emerald-600 text-white hover:bg-emerald-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
                                     disabled={isLoading}
                                 >
                                     Sign Up

@@ -60,12 +60,12 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
             } else if (mode === 'reset') {
                 // Handle password reset
                 console.log('Reset password attempt with email:', email);
-                
+
                 if (!email || !email.trim()) {
                     setError('Please enter your email address');
                     return;
                 }
-                
+
                 const response = await fetch('/api/auth/reset-password', {
                     method: 'POST',
                     headers: {
@@ -76,7 +76,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
 
                 const data = await response.json();
                 console.log('Reset password response:', data);
-                
+
                 if (response.ok) {
                     setResetMessage(data.message);
                 } else {
@@ -121,14 +121,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
     if (!modalRoot) return null;
 
     const modalContent = (
-        <div 
+        <div
             className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 overflow-y-auto"
-            style={{ 
+            style={{
                 pointerEvents: 'auto',
                 zIndex: 999999
             }}
         >
-            <div 
+            <div
                 className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 my-4 relative border"
                 style={{ zIndex: 1000000 }}
             >
@@ -254,7 +254,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
                             </button>
                         </p>
                     )}
-                    
+
                     {mode === 'signin' && (
                         <p className="text-sm text-gray-600">
                             <button
@@ -269,7 +269,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
                             </button>
                         </p>
                     )}
-                    
+
                     {mode === 'reset' && (
                         <p className="text-sm text-gray-600">
                             Remember your password?

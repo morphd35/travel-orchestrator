@@ -41,21 +41,30 @@ export default function WatchesPage() {
 
     // Load watches from unified Edge system, filtered by user
     const loadWatches = async () => {
-        if (!user) return;
+        if (!user) {
+            setLoading(false);
+            return;
+        }
 
         try {
             setLoading(true);
             const response = await fetch(`/edge/watch?userId=${user.id}`);
             if (!response.ok) {
-                throw new Error('Failed to load watches');
+                // If the endpoint doesn't exist or fails, just show empty state
+                console.log('Watches endpoint not available or failed, showing empty state');
+                setWatches([]);
+                setError(null);
+                return;
             }
             const data = await response.json();
             const allWatches = Array.isArray(data) ? data : (data.watches || []);
             setWatches(allWatches.map((watch: any) => ({ ...watch, source: 'edge' as const })));
             setError(null);
         } catch (err: any) {
-            setError(err.message);
-            console.error('Failed to load watches:', err);
+            // For partners without auth, just show empty state instead of error
+            console.log('Failed to load watches, showing empty state:', err.message);
+            setWatches([]);
+            setError(null);
         } finally {
             setLoading(false);
         }
@@ -171,9 +180,9 @@ export default function WatchesPage() {
         }
     };
 
-    // Load watches on component mount, but only after auth is ready
+    // Load watches on component mount, after auth is ready
     useEffect(() => {
-        if (!authLoading && user) {
+        if (!authLoading) {
             loadWatches();
         }
     }, [authLoading, user]);
@@ -196,15 +205,38 @@ export default function WatchesPage() {
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                     <div className="text-center">
-                        <div className="text-6xl mb-4">🔒</div>
-                        <h1 className="text-2xl font-bold text-gray-900 mb-4">Sign In Required</h1>
-                        <p className="text-gray-600 mb-8">Please sign in to view your price watches.</p>
-                        <a
-                            href="/"
-                            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                            Go to Home
-                        </a>
+                        <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                            </svg>
+                        </div>
+                        <h1 className="text-3xl font-bold text-gray-900 mb-4">Price Watches</h1>
+                        <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+                            Track flight prices and get notified when they drop below your target price. 
+                            Create an account to start monitoring flights and saving money.
+                        </p>
+                        <div className="space-y-4">
+                            <p className="text-sm text-gray-500">
+                                To create and manage price watches, you'll need to create an account.
+                            </p>
+                            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                <a
+                                    href="/search"
+                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 flex items-center justify-center gap-2"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    Search Flights
+                                </a>
+                                <a
+                                    href="/"
+                                    className="border border-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-lg hover:bg-gray-50 transition-all duration-200"
+                                >
+                                    Go to Home
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -235,23 +267,56 @@ export default function WatchesPage() {
                 )}
 
                 {watches.length === 0 ? (
-                    <div className="text-center py-12">
-                        <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                            </svg>
+                    <div className="bg-white rounded-xl shadow-lg p-12">
+                        <div className="text-center">
+                            <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                </svg>
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-900 mb-2">No Watches Yet</h3>
+                            <p className="text-slate-600 mb-6 max-w-md mx-auto">
+                                Start monitoring flight prices and get notified when they drop below your target price.
+                            </p>
+                            
+                            <div className="space-y-4 mb-8">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                    <div className="bg-blue-50 p-4 rounded-lg">
+                                        <div className="text-blue-600 font-semibold mb-1">🔍 Search Flights</div>
+                                        <div className="text-blue-700">Find the perfect trip</div>
+                                    </div>
+                                    <div className="bg-green-50 p-4 rounded-lg">
+                                        <div className="text-green-600 font-semibold mb-1">👁️ Set Price Watch</div>
+                                        <div className="text-green-700">Monitor price changes</div>
+                                    </div>
+                                    <div className="bg-purple-50 p-4 rounded-lg">
+                                        <div className="text-purple-600 font-semibold mb-1">📧 Get Notified</div>
+                                        <div className="text-purple-700">Save when prices drop</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                <a
+                                    href="/search"
+                                    className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    Search Flights
+                                </a>
+                                <a
+                                    href="/"
+                                    className="inline-flex items-center gap-2 border border-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-lg hover:bg-gray-50 transition-all duration-200"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                    </svg>
+                                    Go to Home
+                                </a>
+                            </div>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-900 mb-2">No Watches Yet</h3>
-                        <p className="text-slate-600 mb-6">Start monitoring flight prices by creating your first watch.</p>
-                        <a
-                            href="/"
-                            className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                            Create Your First Watch
-                        </a>
                     </div>
                 ) : (
                     <div className="space-y-6">

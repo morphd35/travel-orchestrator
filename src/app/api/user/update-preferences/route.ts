@@ -48,10 +48,10 @@ export async function PUT(request: NextRequest) {
                     updated_at = ?
                 WHERE id = ?
             `;
-            
+
             const stmt = require('better-sqlite3')(process.env.DATABASE_PATH || './data/travel_orchestrator.db')
                 .prepare(updateQuery);
-            
+
             const now = new Date().toISOString();
             stmt.run(
                 JSON.stringify(validatedData.preferredAirlines),

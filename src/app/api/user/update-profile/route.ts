@@ -54,10 +54,10 @@ export async function PUT(request: NextRequest) {
                 SET first_name = ?, last_name = ?, email = ?, phone = ?, updated_at = ?
                 WHERE id = ?
             `;
-            
+
             const stmt = require('better-sqlite3')(process.env.DATABASE_PATH || './data/travel_orchestrator.db')
                 .prepare(updateQuery);
-            
+
             const now = new Date().toISOString();
             stmt.run(
                 validatedData.firstName,
