@@ -116,8 +116,12 @@ If you didn't request this reset, you can safely ignore this email.
 
     } catch (error) {
         console.error('Password reset error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        console.error('Error stack:', errorStack);
+        console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
         return NextResponse.json(
-            { error: 'Password reset failed' },
+            { error: 'Password reset failed', details: errorMessage },
             { status: 500 }
         );
     }
