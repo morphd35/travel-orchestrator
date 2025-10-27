@@ -60,6 +60,25 @@ export async function POST(request: NextRequest) {
             console.log(`Checking regular password for ${validatedData.email}`);
             isPasswordValid = await bcrypt.compare(validatedData.password, user.password_hash);
             console.log(`Regular password match: ${isPasswordValid}`);
+            
+            // If regular password doesn't match, check for JWT-stored password (for read-only DB workaround)
+            if (!isPasswordValid) {
+                const authToken = request.cookies.get('auth_token')?.value;
+                if (authToken) {
+                    try {
+                        const decoded = jwt.verify(authToken, JWT_SECRET) as any;
+                        if (decoded.passwordHash && decoded.email === validatedData.email) {
+                            const jwtPasswordMatch = await bcrypt.compare(validatedData.password, decoded.passwordHash);
+                            if (jwtPasswordMatch) {
+                                isPasswordValid = true;
+                                console.log(`✅ Password matched JWT-stored hash for ${validatedData.email}`);
+                            }
+                        }
+                    } catch (jwtError) {
+                        console.log(`JWT token invalid or expired: ${jwtError}`);
+                    }
+                }
+            }
         }
         
         if (!isPasswordValid) {
