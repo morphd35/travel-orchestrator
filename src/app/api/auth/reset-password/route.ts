@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { dbQueries } from '@/lib/database';
-import { storeTempPassword } from '@/lib/tempPasswordStore';
 import sgMail from '@sendgrid/mail';
 
 // Configure SendGrid
@@ -32,12 +31,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Generate a secure temporary password
-        const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
-        const hashedPassword = await bcrypt.hash(tempPassword, 12);
-
-        // Store temporary password (production-safe approach)
-        storeTempPassword(email, hashedPassword);
+        // Generate a deterministic temporary password based on email and timestamp
+        // This allows us to recreate it during sign-in without persistence
+        const timestamp = Math.floor(Date.now() / (15 * 60 * 1000)); // 15-minute windows
+        const tempPasswordSeed = `${email}-${timestamp}-${process.env.JWT_SECRET}`;
+        const tempPassword = require('crypto').createHash('md5').update(tempPasswordSeed).digest('hex').slice(0, 8).toUpperCase();
+        
+        console.log(`Generated temp password for ${email}: ${tempPassword} (timestamp: ${timestamp})`);
 
         // Send password reset email
         if (process.env.SENDGRID_API_KEY) {

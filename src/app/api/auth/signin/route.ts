@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { dbQueries } from '@/lib/database';
-import { getTempPassword, clearTempPassword } from '@/lib/tempPasswordStore';
 
 const SignInSchema = z.object({
     email: z.string().email('Valid email is required'),
@@ -26,17 +25,21 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Check for temporary password first (for password reset)
-        const tempPassword = getTempPassword(validatedData.email);
+        // Check for deterministic temporary password (works across serverless function calls)
         let isPasswordValid = false;
         
-        if (tempPassword) {
-            // Check if the provided password matches the temporary password
-            isPasswordValid = await bcrypt.compare(validatedData.password, tempPassword);
-            if (isPasswordValid) {
-                // Clear the temporary password after successful login
-                clearTempPassword(validatedData.email);
-                console.log(`User ${validatedData.email} logged in with temporary password`);
+        // Generate the same temporary password that would have been created in the last 15 minutes
+        const currentTimestamp = Math.floor(Date.now() / (15 * 60 * 1000));
+        const previousTimestamp = currentTimestamp - 1; // Also check previous 15-minute window
+        
+        for (const timestamp of [currentTimestamp, previousTimestamp]) {
+            const tempPasswordSeed = `${validatedData.email}-${timestamp}-${process.env.JWT_SECRET}`;
+            const expectedTempPassword = require('crypto').createHash('md5').update(tempPasswordSeed).digest('hex').slice(0, 8).toUpperCase();
+            
+            if (validatedData.password === expectedTempPassword) {
+                isPasswordValid = true;
+                console.log(`User ${validatedData.email} logged in with temporary password (timestamp: ${timestamp})`);
+                break;
             }
         }
         
