@@ -50,10 +50,15 @@ export async function POST(request: NextRequest) {
         
         // If not a temp password, check regular password
         if (!isPasswordValid) {
+            console.log(`Checking regular password for ${validatedData.email}`);
             isPasswordValid = await bcrypt.compare(validatedData.password, user.password_hash);
+            console.log(`Regular password match: ${isPasswordValid}`);
         }
         
         if (!isPasswordValid) {
+            console.log(`❌ Password validation failed for ${validatedData.email}`);
+            console.log(`Provided password: "${validatedData.password}"`);
+            console.log(`Expected temp passwords were logged above`);
             return NextResponse.json(
                 { error: 'Invalid email or password' },
                 { status: 401 }
