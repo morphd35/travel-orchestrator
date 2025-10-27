@@ -32,13 +32,18 @@ export async function POST(request: NextRequest) {
         const currentTimestamp = Math.floor(Date.now() / (15 * 60 * 1000));
         const previousTimestamp = currentTimestamp - 1; // Also check previous 15-minute window
         
+        console.log(`Sign-in attempt for ${validatedData.email} with password: ${validatedData.password}`);
+        console.log(`Current timestamp: ${currentTimestamp}, Previous: ${previousTimestamp}`);
+        
         for (const timestamp of [currentTimestamp, previousTimestamp]) {
             const tempPasswordSeed = `${validatedData.email}-${timestamp}-${process.env.JWT_SECRET}`;
             const expectedTempPassword = require('crypto').createHash('md5').update(tempPasswordSeed).digest('hex').slice(0, 8).toUpperCase();
             
+            console.log(`Checking timestamp ${timestamp}: expected password = ${expectedTempPassword}`);
+            
             if (validatedData.password === expectedTempPassword) {
                 isPasswordValid = true;
-                console.log(`User ${validatedData.email} logged in with temporary password (timestamp: ${timestamp})`);
+                console.log(`✅ User ${validatedData.email} logged in with temporary password (timestamp: ${timestamp})`);
                 break;
             }
         }

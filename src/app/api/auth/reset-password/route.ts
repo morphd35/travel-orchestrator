@@ -37,7 +37,8 @@ export async function POST(request: NextRequest) {
         const tempPasswordSeed = `${email}-${timestamp}-${process.env.JWT_SECRET}`;
         const tempPassword = require('crypto').createHash('md5').update(tempPasswordSeed).digest('hex').slice(0, 8).toUpperCase();
         
-        console.log(`Generated temp password for ${email}: ${tempPassword} (timestamp: ${timestamp})`);
+        console.log(`🔑 Generated temp password for ${email}: ${tempPassword} (timestamp: ${timestamp})`);
+        console.log(`🔧 Seed: ${tempPasswordSeed}`);
 
         // Send password reset email
         if (process.env.SENDGRID_API_KEY) {
