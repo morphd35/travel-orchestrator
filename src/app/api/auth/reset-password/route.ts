@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { dbQueries, db } from '@/lib/database';
+import { dbQueries } from '@/lib/database';
+import { storeTempPassword } from '@/lib/tempPasswordStore';
 import sgMail from '@sendgrid/mail';
 
 // Configure SendGrid
@@ -35,9 +36,8 @@ export async function POST(request: NextRequest) {
         const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
         const hashedPassword = await bcrypt.hash(tempPassword, 12);
 
-        // Update user's password
-        db.prepare('UPDATE users SET password_hash = ? WHERE email = ?')
-          .run(hashedPassword, email);
+        // Store temporary password (production-safe approach)
+        storeTempPassword(email, hashedPassword);
 
         // Send password reset email
         if (process.env.SENDGRID_API_KEY) {
@@ -64,13 +64,14 @@ export async function POST(request: NextRequest) {
                         <ol>
                             <li>Go to <a href="https://www.travelconductor.com" style="color: #2563eb;">travelconductor.com</a></li>
                             <li>Sign in with your email and the temporary password above</li>
-                            <li>Immediately change your password in your account settings</li>
+                            <li>The temporary password will be automatically cleared after login</li>
                         </ol>
                         
                         <p style="color: #dc2626; font-weight: bold;">⚠️ Important Security Notes:</p>
                         <ul style="color: #4b5563;">
-                            <li>This temporary password will work until you change it</li>
-                            <li>Please change it immediately after signing in</li>
+                            <li>This temporary password expires in 15 minutes</li>
+                            <li>It can only be used once</li>
+                            <li>Your original password remains unchanged until you update it</li>
                             <li>If you didn't request this reset, please contact support</li>
                         </ul>
                         

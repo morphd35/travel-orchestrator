@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { dbQueries } from '@/lib/database';
+import { getTempPassword, clearTempPassword } from '@/lib/tempPasswordStore';
 
 const SignInSchema = z.object({
     email: z.string().email('Valid email is required'),
@@ -25,8 +26,25 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Verify password
-        const isPasswordValid = await bcrypt.compare(validatedData.password, user.password_hash);
+        // Check for temporary password first (for password reset)
+        const tempPassword = getTempPassword(validatedData.email);
+        let isPasswordValid = false;
+        
+        if (tempPassword) {
+            // Check if the provided password matches the temporary password
+            isPasswordValid = await bcrypt.compare(validatedData.password, tempPassword);
+            if (isPasswordValid) {
+                // Clear the temporary password after successful login
+                clearTempPassword(validatedData.email);
+                console.log(`User ${validatedData.email} logged in with temporary password`);
+            }
+        }
+        
+        // If not a temp password, check regular password
+        if (!isPasswordValid) {
+            isPasswordValid = await bcrypt.compare(validatedData.password, user.password_hash);
+        }
+        
         if (!isPasswordValid) {
             return NextResponse.json(
                 { error: 'Invalid email or password' },
