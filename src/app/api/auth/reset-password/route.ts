@@ -4,9 +4,13 @@ import { dbQueries, db } from '@/lib/database';
 
 export async function POST(request: NextRequest) {
     try {
-        const { email } = await request.json();
+        const body = await request.json();
+        console.log('Reset password request body:', body);
+        
+        const { email } = body;
 
-        if (!email) {
+        if (!email || !email.trim()) {
+            console.log('No email provided in reset request');
             return NextResponse.json(
                 { error: 'Email is required' },
                 { status: 400 }

@@ -59,20 +59,28 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
                 result = await signUp(email, password, firstName.trim(), lastName.trim());
             } else if (mode === 'reset') {
                 // Handle password reset
+                console.log('Reset password attempt with email:', email);
+                
+                if (!email || !email.trim()) {
+                    setError('Please enter your email address');
+                    return;
+                }
+                
                 const response = await fetch('/api/auth/reset-password', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ email }),
+                    body: JSON.stringify({ email: email.trim() }),
                 });
 
                 const data = await response.json();
+                console.log('Reset password response:', data);
                 
                 if (response.ok) {
                     setResetMessage(data.message);
                     if (data.tempPassword) {
-                        setResetMessage(`${data.message}\nTemporary password: ${data.tempPassword}`);
+                        setResetMessage(`${data.message}\n\nTemporary password: ${data.tempPassword}\n\nUse this password to sign in, then change it in your settings.`);
                     }
                 } else {
                     setError(data.error || 'Password reset failed');
