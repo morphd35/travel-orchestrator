@@ -330,7 +330,11 @@ export default function ProfilePage() {
                         value={passwordForm.currentPassword}
                         onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="Enter your current password or temporary password from email reset"
                       />
+                      <p className="mt-1 text-xs text-gray-500">
+                        💡 If you recently reset your password via email, you can use the temporary password here
+                      </p>
                     </div>
 
                     <div>

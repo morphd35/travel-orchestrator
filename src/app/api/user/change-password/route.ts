@@ -46,9 +46,35 @@ export async function PUT(request: NextRequest) {
             );
         }
 
-        // Verify current password
-        const isCurrentPasswordValid = await bcrypt.compare(validatedData.currentPassword, user.password_hash);
+        // Verify current password (regular password OR temporary password)
+        let isCurrentPasswordValid = false;
+
+        // First try regular password
+        isCurrentPasswordValid = await bcrypt.compare(validatedData.currentPassword, user.password_hash);
+
+        // If regular password fails, check for temporary password
         if (!isCurrentPasswordValid) {
+            const currentTimestamp = Math.floor(Date.now() / (15 * 60 * 1000));
+            const previousTimestamp = currentTimestamp - 1; // Also check previous 15-minute window
+            
+            console.log(`Checking temp password for user ${user.email} with password: ${validatedData.currentPassword}`);
+            
+            for (const timestamp of [currentTimestamp, previousTimestamp]) {
+                const tempPasswordSeed = `${user.email}-${timestamp}-${process.env.JWT_SECRET}`;
+                const expectedTempPassword = require('crypto').createHash('md5').update(tempPasswordSeed).digest('hex').slice(0, 8).toUpperCase();
+                
+                console.log(`Checking timestamp ${timestamp}: expected temp password = ${expectedTempPassword}`);
+                
+                if (validatedData.currentPassword === expectedTempPassword) {
+                    isCurrentPasswordValid = true;
+                    console.log(`✅ User ${user.email} verified with temporary password for password change`);
+                    break;
+                }
+            }
+        }
+
+        if (!isCurrentPasswordValid) {
+            console.log(`❌ Password verification failed for ${user.email}`);
             return NextResponse.json(
                 { error: 'Current password is incorrect' },
                 { status: 400 }
