@@ -45,6 +45,12 @@ export function middleware(request: NextRequest) {
   // Check for access in cookies
   const accessCode = request.cookies.get('travel-access-code')?.value;
   const userEmail = request.cookies.get('travel-user-email')?.value;
+  const authToken = request.cookies.get('auth_token')?.value;
+
+  // Allow if user is authenticated (has valid auth token)
+  if (authToken) {
+    return NextResponse.next();
+  }
 
   // Allow if has valid access code
   if (accessCode && ALLOWED_ACCESS_CODES.includes(accessCode)) {
