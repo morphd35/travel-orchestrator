@@ -79,9 +79,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
                 
                 if (response.ok) {
                     setResetMessage(data.message);
-                    if (data.tempPassword) {
-                        setResetMessage(`${data.message}\n\nTemporary password: ${data.tempPassword}\n\nUse this password to sign in, then change it in your settings.`);
-                    }
                 } else {
                     setError(data.error || 'Password reset failed');
                 }
@@ -301,7 +298,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'signin' }: A
                 {mode === 'reset' && (
                     <div className="mt-4 p-3 bg-yellow-50 rounded-md">
                         <p className="text-xs text-yellow-700">
-                            <strong>Password Reset:</strong> Enter your email address and we'll generate a temporary password for you.
+                            <strong>Password Reset:</strong> Enter your email address and we'll send you a temporary password via email.
                         </p>
                     </div>
                 )}
