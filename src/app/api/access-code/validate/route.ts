@@ -21,8 +21,8 @@ function loadAccessRequests() {
 function isAccessCodeValid(accessCode: string): boolean {
     try {
         const requests = loadAccessRequests();
-        const approvedRequest = requests.find((req: any) => 
-            req.status === 'approved' && 
+        const approvedRequest = requests.find((req: any) =>
+            req.status === 'approved' &&
             req.accessCode === accessCode &&
             req.accessCodeExpiresAt
         );
@@ -33,7 +33,7 @@ function isAccessCodeValid(accessCode: string): boolean {
 
         const expirationDate = new Date(approvedRequest.accessCodeExpiresAt);
         const now = new Date();
-        
+
         return now < expirationDate;
     } catch (error) {
         console.error('Error checking access code validity:', error);
@@ -64,10 +64,10 @@ export async function POST(request: NextRequest) {
 
         // Check against dynamic access codes
         const isValid = isAccessCodeValid(accessCode);
-        
-        return NextResponse.json({ 
-            valid: isValid, 
-            type: isValid ? 'dynamic' : 'invalid' 
+
+        return NextResponse.json({
+            valid: isValid,
+            type: isValid ? 'dynamic' : 'invalid'
         });
 
     } catch (error) {

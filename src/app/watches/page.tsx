@@ -212,7 +212,7 @@ export default function WatchesPage() {
                         </div>
                         <h1 className="text-3xl font-bold text-gray-900 mb-4">Price Watches</h1>
                         <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-                            Track flight prices and get notified when they drop below your target price. 
+                            Track flight prices and get notified when they drop below your target price.
                             Create an account to start monitoring flights and saving money.
                         </p>
                         <div className="space-y-4">
@@ -278,7 +278,7 @@ export default function WatchesPage() {
                             <p className="text-slate-600 mb-6 max-w-md mx-auto">
                                 Start monitoring flight prices and get notified when they drop below your target price.
                             </p>
-                            
+
                             <div className="space-y-4 mb-8">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                                     <div className="bg-blue-50 p-4 rounded-lg">

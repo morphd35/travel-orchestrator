@@ -133,8 +133,8 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
                                                     ✈️ My Bookings
                                                 </Link>
                                                 {user.email === 'morphd335@yahoo.com' && (
-                                                    <Link 
-                                                        href="/admin/access-requests" 
+                                                    <Link
+                                                        href="/admin/access-requests"
                                                         onClick={() => setShowUserMenu(false)}
                                                         className="block px-4 py-2 text-sm text-blue-700 hover:bg-blue-50 font-medium"
                                                     >

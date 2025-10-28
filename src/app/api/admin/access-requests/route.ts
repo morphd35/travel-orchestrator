@@ -47,8 +47,8 @@ function generateAccessCode() {
 function isAccessCodeValid(accessCode: string): boolean {
     try {
         const requests = loadAccessRequests();
-        const approvedRequest = requests.find((req: any) => 
-            req.status === 'approved' && 
+        const approvedRequest = requests.find((req: any) =>
+            req.status === 'approved' &&
             req.accessCode === accessCode &&
             req.accessCodeExpiresAt
         );
@@ -59,7 +59,7 @@ function isAccessCodeValid(accessCode: string): boolean {
 
         const expirationDate = new Date(approvedRequest.accessCodeExpiresAt);
         const now = new Date();
-        
+
         return now < expirationDate;
     } catch (error) {
         console.error('Error checking access code validity:', error);
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
         const requests = loadAccessRequests();
         return NextResponse.json({
             success: true,
-            requests: requests.sort((a: any, b: any) => 
+            requests: requests.sort((a: any, b: any) =>
                 new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             )
         });
@@ -171,7 +171,7 @@ export async function PUT(request: NextRequest) {
         if (process.env.SENDGRID_API_KEY) {
             try {
                 const isApproved = action === 'approve';
-                const subject = isApproved 
+                const subject = isApproved
                     ? '✅ Access Approved - Welcome to Travel Conductor!'
                     : '❌ Access Request Update - Travel Conductor';
 

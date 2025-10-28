@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         // Load existing requests and check for duplicates
         const existingRequests = loadAccessRequests();
         const existingRequest = existingRequests.find((req: any) => req.email === accessRequest.email);
-        
+
         if (existingRequest && existingRequest.status === 'pending') {
             return NextResponse.json(
                 { error: 'An access request with this email is already pending review' },
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
             try {
                 const ownerEmail = process.env.OWNER_EMAIL || 'morphd335@yahoo.com';
                 const adminUrl = `${request.headers.get('origin') || 'https://www.travelconductor.com'}/admin/access-requests`;
-                
+
                 await sgMail.send({
                     to: ownerEmail,
                     from: process.env.SENDGRID_FROM_EMAIL || 'morphd35@gmail.com',

@@ -10,10 +10,8 @@
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
-    "@types/bcryptjs": "^3.0.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node-cache": "^4.2.5",
     "@vercel/speed-insights": "^1.2.0",
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^12.4.1",
