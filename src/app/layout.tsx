@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import GlobalNavigation from "@/components/GlobalNavigation";
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "@/lib/themeContext";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // Background monitoring disabled - not suitable for Next.js server architecture
 // Use external cron jobs or serverless functions for production monitoring
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </AuthProvider>
         </ThemeProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
