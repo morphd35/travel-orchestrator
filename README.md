@@ -265,6 +265,22 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to see the app.
 
+## 🔒 **Security Best Practices**
+
+**⚠️ CRITICAL: Never commit API keys to git!**
+
+- Always use `.env.local` for sensitive environment variables
+- Copy `.env.example` to `.env.local` and fill in your actual values
+- Verify `.env*` files are in your `.gitignore`
+- Use environment variables in production (Vercel automatically uses them)
+- Regenerate API keys immediately if accidentally exposed
+
+**Environment Variable Security:**
+- `AMADEUS_API_KEY` - Never hardcode in source files
+- `SENDGRID_API_KEY` - Keep in environment variables only
+- `JWT_SECRET` - Generate a strong random secret
+- Use different keys for development/production environments
+
 ### 4. Test User Authentication
 
 **Create a test user:**
