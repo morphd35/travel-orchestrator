@@ -197,7 +197,7 @@ export async function searchFlights(params: FlightSearchParams): Promise<NormalF
         returnDate: params.returnDate,
         adults: params.adults || 1,
         currency: params.currency || 'USD',
-        max: params.max || 20,
+        max: params.max || 100, // Increased from 20 to 100 for better airline coverage
     };
 
     // Generate cache key
@@ -221,7 +221,7 @@ export async function searchFlights(params: FlightSearchParams): Promise<NormalF
             departureDate: normalizedParams.departDate,
             adults: normalizedParams.adults.toString(),
             currencyCode: normalizedParams.currency,
-            max: normalizedParams.max.toString(),
+            max: Math.min(normalizedParams.max, 250).toString(), // Amadeus supports up to 250 results
         });
 
         if (normalizedParams.returnDate) {

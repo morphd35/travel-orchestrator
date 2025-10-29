@@ -104,7 +104,7 @@ class UnifiedFlightClient {
         }
 
         // Fallback: Try Amadeus if Skyscanner didn't return enough results
-        if (results.length < 5) {
+        if (results.length < 10) { // Increased threshold from 5 to 10
             try {
                 console.log(`🛫 Searching with Amadeus (Fallback)... Current results: ${results.length}`);
                 const amadeusResults = await this.searchWithAmadeus(params);
@@ -184,7 +184,7 @@ class UnifiedFlightClient {
                 returnDate: params.returnDate,
                 adults: params.adults || 1,
                 currency: params.currency || 'USD',
-                max: 20 // Limit Amadeus results since it's fallback
+                max: params.max || 100 // Increased from 20 to match user request limit
             });
 
             return amadeusResults.map((flight: any, index: number) => {

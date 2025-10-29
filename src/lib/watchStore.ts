@@ -8,6 +8,7 @@ export type Watch = {
     start: string; // YYYY-MM-DD
     end: string; // YYYY-MM-DD
     cabin: "ECONOMY" | "PREMIUM_ECONOMY" | "BUSINESS" | "FIRST";
+    tripType: "oneway" | "roundtrip"; // Trip type preference
     maxStops: number;
     adults: number;
     currency: "USD";
@@ -27,11 +28,11 @@ export type Watch = {
 // Database prepared statements
 const insertWatch = db.prepare(`
   INSERT INTO watches (
-    id, userId, origin, destination, start, end, cabin, maxStops, adults, 
+    id, userId, origin, destination, start, end, cabin, tripType, maxStops, adults, 
     currency, targetUsd, flexDays, active, email, provider, lastProvider, 
     lastSourceLink, lastBestUsd, lastNotifiedUsd, createdAt, updatedAt
   ) VALUES (
-    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
   )
 `);
 
@@ -45,7 +46,7 @@ const selectWatchById = db.prepare(`
 
 const updateWatchById = db.prepare(`
   UPDATE watches SET 
-    userId = ?, origin = ?, destination = ?, start = ?, end = ?, cabin = ?, 
+    userId = ?, origin = ?, destination = ?, start = ?, end = ?, cabin = ?, tripType = ?, 
     maxStops = ?, adults = ?, currency = ?, targetUsd = ?, flexDays = ?, 
     active = ?, email = ?, provider = ?, lastProvider = ?, lastSourceLink = ?, 
     lastBestUsd = ?, lastNotifiedUsd = ?, updatedAt = ?
@@ -86,7 +87,7 @@ export function createWatch(watchData: Omit<Watch, 'id' | 'createdAt' | 'updated
 
     insertWatch.run(
         watch.id, watch.userId, watch.origin, watch.destination, watch.start, watch.end,
-        watch.cabin, watch.maxStops, watch.adults, watch.currency, watch.targetUsd,
+        watch.cabin, watch.tripType, watch.maxStops, watch.adults, watch.currency, watch.targetUsd,
         watch.flexDays, watch.active ? 1 : 0, watch.email || null, watch.provider,
         watch.lastProvider || null, watch.lastSourceLink || null, watch.lastBestUsd || null,
         watch.lastNotifiedUsd || null, watch.createdAt, watch.updatedAt
@@ -146,7 +147,7 @@ export function updateWatch(id: string, patch: Partial<Omit<Watch, 'id' | 'creat
 
     updateWatchById.run(
         updatedWatch.userId, updatedWatch.origin, updatedWatch.destination,
-        updatedWatch.start, updatedWatch.end, updatedWatch.cabin, updatedWatch.maxStops,
+        updatedWatch.start, updatedWatch.end, updatedWatch.cabin, updatedWatch.tripType, updatedWatch.maxStops,
         updatedWatch.adults, updatedWatch.currency, updatedWatch.targetUsd,
         updatedWatch.flexDays, updatedWatch.active ? 1 : 0, updatedWatch.email || null,
         updatedWatch.provider, updatedWatch.lastProvider || null, updatedWatch.lastSourceLink || null,

@@ -144,7 +144,7 @@ export function renderFareEmail(data: FareEmailData): string {
             <!-- CTA Buttons -->
             <div style="text-align: center; margin: 30px 0;">
                 <a href="${deeplinkUrl.replace('/?', '/book?')}" style="display: inline-block; background: #28a745; color: white; padding: 18px 35px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 18px; margin-right: 15px; box-shadow: 0 2px 4px rgba(40,167,69,0.3);">
-                    🎫 Book This Flight
+                    🎫 Proceed to booking
                 </a>
                 <a href="${deeplinkUrl}" style="display: inline-block; background: #007bff; color: white; padding: 15px 25px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(0,123,255,0.3);">
                     🔍 Search Similar

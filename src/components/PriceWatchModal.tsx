@@ -47,6 +47,8 @@ export default function PriceWatchModal({ isOpen, onClose, flightInfo }: PriceWa
     const [priceThreshold, setPriceThreshold] = useState(100); // Dollar amount
     const [targetPrice, setTargetPrice] = useState(Math.floor(flightInfo.currentPrice * 0.8)); // 20% less than current
     const [notificationType, setNotificationType] = useState<'email' | 'sms' | 'both'>('email');
+    const [tripType, setTripType] = useState<'roundtrip' | 'oneway'>(flightInfo.returnDate ? 'roundtrip' : 'oneway');
+    const [cabinClass, setCabinClass] = useState<'ECONOMY' | 'PREMIUM_ECONOMY' | 'BUSINESS' | 'FIRST'>('ECONOMY');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [notes, setNotes] = useState('');
@@ -82,16 +84,17 @@ export default function PriceWatchModal({ isOpen, onClose, flightInfo }: PriceWa
                     origin: flightInfo.origin.toUpperCase(),
                     destination: flightInfo.destination.toUpperCase(),
                     start: startDate,
-                    end: endDate,
+                    end: tripType === 'oneway' ? startDate : endDate, // For one-way, use same start date
                     targetUsd: targetPrice,
-                    cabin: 'ECONOMY',
+                    cabin: cabinClass,
                     maxStops: 2,
                     adults: flightInfo.adults + flightInfo.seniors,
                     currency: 'USD',
                     flexDays: 3,
                     active: true,
                     email: email || user!.email, // Use user email if not provided
-                    userId: user!.id // Include user ID for watch management
+                    userId: user!.id, // Include user ID for watch management
+                    tripType: tripType // Add trip type to the watch data
                 }),
             });
 
@@ -266,6 +269,36 @@ export default function PriceWatchModal({ isOpen, onClose, flightInfo }: PriceWa
                                 />
                             </div>
                             <p className="text-xs text-slate-500 mt-1">Alert when price drops to this level</p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                Trip Type
+                            </label>
+                            <select
+                                value={tripType}
+                                onChange={(e) => setTripType(e.target.value as 'roundtrip' | 'oneway')}
+                                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                <option value="roundtrip">Round Trip</option>
+                                <option value="oneway">One Way</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                Cabin Class
+                            </label>
+                            <select
+                                value={cabinClass}
+                                onChange={(e) => setCabinClass(e.target.value as 'ECONOMY' | 'PREMIUM_ECONOMY' | 'BUSINESS' | 'FIRST')}
+                                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                <option value="ECONOMY">Economy</option>
+                                <option value="PREMIUM_ECONOMY">Premium Economy</option>
+                                <option value="BUSINESS">Business</option>
+                                <option value="FIRST">First Class</option>
+                            </select>
                         </div>
                     </div>
 

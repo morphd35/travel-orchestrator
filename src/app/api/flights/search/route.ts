@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
             infants = 0,
             cabinClass = 'economy',
             currency = 'USD',
-            max = 50,
+            max = 100, // Increased from 50 to 100 for comprehensive coverage like Google Flights
             userId, // Optional - for search history recording
         } = body;
 

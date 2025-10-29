@@ -10,6 +10,8 @@ import AirportAutocomplete from '@/components/AirportAutocomplete';
 import PriceWatchModal from '@/components/PriceWatchModal';
 import { getAirlineName, getAirportName, AIRLINE_NAMES, formatStopsInfo } from '@/lib/airlineUtils';
 import { useAuth } from '@/lib/auth';
+import { proceedToAirlineBooking } from '@/lib/partnerBooking';
+import { UnifiedFlightResult } from '@/lib/unifiedFlightClient';
 
 // Price monitoring is handled by the /edge/watch/run endpoint
 // and can be triggered manually or via cron jobs
@@ -60,6 +62,8 @@ type SearchReq = {
   destination: string;
   startDate: string;
   endDate: string;
+  tripType: 'roundtrip' | 'oneway';
+  cabinClass: 'economy' | 'premium_economy' | 'business' | 'first';
   flexibilityDays: number;
   includeHotel: boolean;
   includeCar: boolean;
@@ -214,6 +218,92 @@ function parseDuration(isoDuration: string | undefined): string {
   }
 }
 
+// Convert PackageResult to UnifiedFlightResult for airline booking
+function convertToUnifiedFlightResult(packageResult: PackageResult, searchParams: any): UnifiedFlightResult | null {
+  const flight = packageResult.components.flight;
+  if (!flight) {
+    console.error('No flight data available for booking');
+    return null;
+  }
+
+  // Create a basic UnifiedFlightResult structure
+  const unifiedFlight: UnifiedFlightResult = {
+    id: packageResult.id,
+    price: packageResult.total,
+    currency: 'USD', // Default currency for now
+    carrier: flight.carrier,
+    carrierName: flight.carrierName,
+    source: 'search' as any, // The booking service should handle any carrier
+    outbound: {
+      origin: searchParams?.origin || '',
+      destination: searchParams?.destination || '',
+      departure: searchParams?.startDate ? `${searchParams.startDate}T${flight.departureTime || '10:00:00'}` : new Date().toISOString(),
+      arrival: searchParams?.startDate ? `${searchParams.startDate}T${flight.arrivalTime || '14:00:00'}` : new Date().toISOString(),
+      duration: parseDurationToMinutes(flight.duration || '4h 00m'),
+      stops: flight.stops || 0,
+      segments: flight.segments?.map(seg => ({
+        origin: seg.departure?.iataCode || searchParams?.origin || '',
+        destination: seg.arrival?.iataCode || searchParams?.destination || '',
+        departure: seg.departure?.at || '',
+        arrival: seg.arrival?.at || '',
+        flightNumber: flight.flightNumber || `${flight.carrier}1234`,
+        carrier: seg.carrierCode || flight.carrier,
+        carrierName: flight.carrierName,
+        aircraft: flight.aircraft || '',
+        duration: parseDurationToMinutes(flight.duration || '4h 00m')
+      })) || [{
+        origin: searchParams?.origin || '',
+        destination: searchParams?.destination || '',
+        departure: searchParams?.startDate ? `${searchParams.startDate}T${flight.departureTime || '10:00:00'}` : new Date().toISOString(),
+        arrival: searchParams?.startDate ? `${searchParams.startDate}T${flight.arrivalTime || '14:00:00'}` : new Date().toISOString(),
+        flightNumber: flight.flightNumber || `${flight.carrier}1234`,
+        carrier: flight.carrier,
+        carrierName: flight.carrierName,
+        aircraft: flight.aircraft || '',
+        duration: parseDurationToMinutes(flight.duration || '4h 00m')
+      }]
+    },
+    // Add inbound if it's a round trip
+    inbound: searchParams?.endDate ? {
+      origin: searchParams?.destination || '',
+      destination: searchParams?.origin || '',
+      departure: searchParams?.endDate ? `${searchParams.endDate}T${flight.arrivalTime || '14:00:00'}` : new Date().toISOString(),
+      arrival: searchParams?.endDate ? `${searchParams.endDate}T${flight.departureTime || '18:00:00'}` : new Date().toISOString(),
+      duration: parseDurationToMinutes(flight.duration || '4h 00m'),
+      stops: flight.stops || 0,
+      segments: [{
+        origin: searchParams?.destination || '',
+        destination: searchParams?.origin || '',
+        departure: searchParams?.endDate ? `${searchParams.endDate}T${flight.arrivalTime || '14:00:00'}` : new Date().toISOString(),
+        arrival: searchParams?.endDate ? `${searchParams.endDate}T${flight.departureTime || '18:00:00'}` : new Date().toISOString(),
+        flightNumber: flight.flightNumber || `${flight.carrier}5678`,
+        carrier: flight.carrier,
+        carrierName: flight.carrierName,
+        aircraft: flight.aircraft || '',
+        duration: parseDurationToMinutes(flight.duration || '4h 00m')
+      }]
+    } : undefined
+  };
+
+  return unifiedFlight;
+}
+
+// Helper function to convert duration string to minutes
+function parseDurationToMinutes(duration: string): number {
+  try {
+    // Handle formats like "4h 00m", "2h 30m", "45m", "1h"
+    const match = duration.match(/(?:(\d+)h\s*)?(?:(\d+)m)?/);
+    if (!match) return 240; // Default 4 hours
+
+    const hours = parseInt(match[1] || '0');
+    const minutes = parseInt(match[2] || '0');
+
+    return hours * 60 + minutes;
+  } catch {
+    return 240; // Default 4 hours
+  }
+}
+
 function Home() {
   const urlParams = useSearchParams();
   const { user } = useAuth();
@@ -231,6 +321,10 @@ function Home() {
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
   const [seniors, setSeniors] = useState(0);
+
+  // Trip preferences
+  const [tripType, setTripType] = useState<'roundtrip' | 'oneway'>('roundtrip');
+  const [cabinClass, setCabinClass] = useState<'economy' | 'premium_economy' | 'business' | 'first'>('economy');
 
   // Include options
   const [includeHotel, setIncludeHotel] = useState(true);
@@ -536,7 +630,9 @@ function Home() {
       origin: originIATA.toUpperCase(),
       destination: destinationIATA.toUpperCase(),
       startDate: startDate,
-      endDate: endDate,
+      endDate: tripType === 'oneway' ? '' : endDate,
+      tripType: tripType,
+      cabinClass: cabinClass,
       flexibilityDays: 0, // Can be made dynamic later
       includeHotel: includeHotel,
       includeCar: includeCar,
@@ -569,8 +665,8 @@ function Home() {
     // Store search params for use in results
     setSearchParams(payload);
 
-    // Validate dates
-    if (new Date(payload.startDate) >= new Date(payload.endDate)) {
+    // Validate dates for round-trip flights
+    if (payload.tripType === 'roundtrip' && payload.endDate && new Date(payload.startDate) >= new Date(payload.endDate)) {
       setError('Return date must be after departure date');
       setLoading(false);
       return;
@@ -589,8 +685,10 @@ function Home() {
           origin: normalizedOrigin,
           destination: normalizedDestination,
           departDate: payload.startDate,
-          returnDate: payload.endDate,
+          returnDate: payload.tripType === 'oneway' ? undefined : payload.endDate,
           adults: payload.travelers.adults + payload.travelers.seniors, // Amadeus combines adults and seniors
+          children: payload.travelers.children,
+          cabinClass: payload.cabinClass,
           currency: 'USD',
           max: 50,
           userId: user?.id, // Include user ID for search history recording
@@ -610,7 +708,7 @@ function Home() {
       const flights = flightData.results || [];
 
       if (flights.length === 0) {
-        setError('No flights found from Amadeus for this route. Note: American Airlines, Delta, and some low-cost carriers are currently unavailable in the Amadeus test API. Try different dates, destinations, or check back later.');
+        setError('No flights found for this route. This may be due to temporary API issues, no availability for these dates, or limited airline coverage. Try different dates, nearby airports, or check back later.');
         setLoading(false);
         return;
       }
@@ -865,9 +963,9 @@ function Home() {
                     Return Date
                   </label>
                   <div
-                    className={`relative ${!startDate ? 'cursor-not-allowed' : 'cursor-text'}`}
+                    className={`relative ${!startDate || tripType === 'oneway' ? 'cursor-not-allowed' : 'cursor-text'}`}
                     onClick={(e) => {
-                      if (!startDate) return;
+                      if (!startDate || tripType === 'oneway') return;
                       const input = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement;
                       if (input && !input.disabled) {
                         if (input.showPicker) {
@@ -881,17 +979,59 @@ function Home() {
                     <input
                       type="date"
                       name="endDate"
-                      value={endDate}
+                      value={tripType === 'oneway' ? '' : endDate}
                       onChange={(e) => setEndDate(e.target.value)}
                       min={minEndDate}
-                      disabled={!startDate}
-                      className={`w-full px-4 py-3 bg-cyan-50/50 border border-cyan-200 rounded-xl text-teal-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all ${!startDate ? 'disabled:opacity-50 disabled:cursor-not-allowed' : 'cursor-pointer'}`}
-                      required
+                      disabled={!startDate || tripType === 'oneway'}
+                      className={`w-full px-4 py-3 bg-cyan-50/50 border border-cyan-200 rounded-xl text-teal-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all ${!startDate || tripType === 'oneway' ? 'disabled:opacity-50 disabled:cursor-not-allowed' : 'cursor-pointer'}`}
+                      required={tripType === 'roundtrip'}
                     />
                   </div>
-                  {!startDate && (
-                    <p className="text-xs text-slate-500 mt-1">Select departure date first</p>
+                  {(!startDate || tripType === 'oneway') && (
+                    <p className="text-xs text-slate-500 mt-1">
+                      {tripType === 'oneway' ? 'One-way trip selected' : 'Select departure date first'}
+                    </p>
                   )}
+                </div>
+              </div>
+
+              {/* Trip Preferences Row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-emerald-300 uppercase tracking-wider">
+                    Trip Type
+                  </label>
+                  <select
+                    value={tripType}
+                    onChange={(e) => {
+                      const newTripType = e.target.value as 'roundtrip' | 'oneway';
+                      setTripType(newTripType);
+                      // Clear return date if switching to one-way
+                      if (newTripType === 'oneway') {
+                        setEndDate('');
+                      }
+                    }}
+                    className="w-full px-4 py-3 bg-cyan-50/50 border border-cyan-200 rounded-xl text-teal-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+                  >
+                    <option value="roundtrip">Round Trip</option>
+                    <option value="oneway">One Way</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-emerald-300 uppercase tracking-wider">
+                    Cabin Class
+                  </label>
+                  <select
+                    value={cabinClass}
+                    onChange={(e) => setCabinClass(e.target.value as 'economy' | 'premium_economy' | 'business' | 'first')}
+                    className="w-full px-4 py-3 bg-cyan-50/50 border border-cyan-200 rounded-xl text-teal-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+                  >
+                    <option value="economy">Economy</option>
+                    <option value="premium_economy">Premium Economy</option>
+                    <option value="business">Business</option>
+                    <option value="first">First Class</option>
+                  </select>
                 </div>
               </div>
 
@@ -1426,42 +1566,23 @@ function Home() {
                         }
                       })()}
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           if (!searchParams) return;
 
-                          // Generate booking URL with flight details
-                          const bookingParams = new URLSearchParams({
-                            o: searchParams.origin,
-                            d: searchParams.destination,
-                            ds: searchParams.startDate,
-                            p: r.total.toString(),
-                            c: 'USD', // Default currency
-                            car: r.components.flight?.carrier || 'XX',
-                            so: r.components.flight?.stops?.toString() || '0',
-                            adults: (adults + seniors).toString() // Total adult passengers
-                          });
-
-                          if (searchParams.endDate) {
-                            bookingParams.set('rs', searchParams.endDate);
+                          // Convert to UnifiedFlightResult and proceed directly to airline booking
+                          const unifiedFlight = convertToUnifiedFlightResult(r, searchParams);
+                          if (unifiedFlight) {
+                            await proceedToAirlineBooking(unifiedFlight);
+                          } else {
+                            alert('Unable to process booking. Please try again.');
                           }
-
-                          // Add flight segments if available
-                          if (r.components.flight?.segments) {
-                            const segmentDetails = r.components.flight.segments.map((seg: any) =>
-                              `${seg.departure?.iataCode || ''} → ${seg.arrival?.iataCode || ''} (${r.components.flight?.carrier})`
-                            ).join('\n');
-                            bookingParams.set('seg', encodeURIComponent(segmentDetails));
-                          }
-
-                          // Navigate to booking page
-                          window.location.href = `/book?${bookingParams.toString()}`;
                         }}
                         className="flex-1 bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-cyan-600 hover:to-teal-700 hover:cursor-pointer transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        <span>Book Flight</span>
+                        <span>Proceed to booking</span>
                       </button>
                       <button
                         onClick={() => {

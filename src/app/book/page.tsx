@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { getAirlineName, getAirportName, formatStopsInfo } from '@/lib/airlineUtils';
 import BookingForm from '@/components/BookingForm';
 import FlightExpirationWarning from '@/components/FlightExpirationWarning';
+import { proceedToAirlineBooking } from '@/lib/partnerBooking';
+import { UnifiedFlightResult } from '@/lib/unifiedFlightClient';
 
 interface FlightBookingDetails {
     origin: string;
@@ -19,6 +21,62 @@ interface FlightBookingDetails {
     segments?: string;
     targetPrice?: number;
     adults: number;
+}
+
+// Convert FlightBookingDetails to UnifiedFlightResult for airline booking
+function convertBookingDetailsToUnifiedFlight(flight: FlightBookingDetails): UnifiedFlightResult {
+    const departureTime = new Date().toISOString(); // Default to now, will be updated with real data
+    const arrivalTime = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(); // Default 4 hours later
+
+    const unifiedFlight: UnifiedFlightResult = {
+        id: `book_${Date.now()}`,
+        price: flight.total,
+        currency: flight.currency || 'USD',
+        carrier: flight.carrier,
+        carrierName: getAirlineName(flight.carrier),
+        source: 'booking' as any,
+        outbound: {
+            origin: flight.origin,
+            destination: flight.destination,
+            departure: flight.depart ? `${flight.depart}T10:00:00` : departureTime,
+            arrival: flight.depart ? `${flight.depart}T14:00:00` : arrivalTime,
+            duration: 4 * 60, // Default 4 hours in minutes
+            stops: flight.stopsOut || 0,
+            segments: [{
+                origin: flight.origin,
+                destination: flight.destination,
+                departure: flight.depart ? `${flight.depart}T10:00:00` : departureTime,
+                arrival: flight.depart ? `${flight.depart}T14:00:00` : arrivalTime,
+                flightNumber: `${flight.carrier}1234`,
+                carrier: flight.carrier,
+                carrierName: getAirlineName(flight.carrier),
+                aircraft: '',
+                duration: 4 * 60
+            }]
+        },
+        // Add return flight if it's round trip
+        inbound: flight.returnDate ? {
+            origin: flight.destination,
+            destination: flight.origin,
+            departure: `${flight.returnDate}T15:00:00`,
+            arrival: `${flight.returnDate}T19:00:00`,
+            duration: 4 * 60,
+            stops: flight.stopsBack || 0,
+            segments: [{
+                origin: flight.destination,
+                destination: flight.origin,
+                departure: `${flight.returnDate}T15:00:00`,
+                arrival: `${flight.returnDate}T19:00:00`,
+                flightNumber: `${flight.carrier}5678`,
+                carrier: flight.carrier,
+                carrierName: getAirlineName(flight.carrier),
+                aircraft: '',
+                duration: 4 * 60
+            }]
+        } : undefined
+    };
+
+    return unifiedFlight;
 }
 
 function BookFlightContent() {
@@ -106,23 +164,18 @@ function BookFlightContent() {
         });
     };
 
-    const handleBookNow = () => {
-        // Check if direct booking is available
-        fetch('/api/booking/flight?action=capabilities')
-            .then(res => res.json())
-            .then(data => {
-                if (data.enabled) {
-                    // Show the advanced booking form
-                    setShowBookingForm(true);
-                } else {
-                    // Fallback to external booking reference
-                    showExternalBookingReference();
-                }
-            })
-            .catch(() => {
-                // On error, show external booking reference
-                showExternalBookingReference();
-            });
+    const handleBookNow = async () => {
+        if (!flight) return;
+
+        try {
+            // Convert flight details to UnifiedFlightResult and proceed directly to airline
+            const unifiedFlight = convertBookingDetailsToUnifiedFlight(flight);
+            await proceedToAirlineBooking(unifiedFlight);
+        } catch (error) {
+            console.error('Direct booking failed:', error);
+            // Fallback to external booking reference
+            showExternalBookingReference();
+        }
     };
 
     const showExternalBookingReference = () => {
@@ -326,7 +379,7 @@ Found by Travel Conductor - ${new Date().toLocaleDateString()}
                                 className="flex-1 bg-blue-600 text-white py-4 px-8 rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
                             >
                                 <span className="mr-2">🎫</span>
-                                Book This Flight
+                                Proceed to booking
                             </button>
 
                             <a

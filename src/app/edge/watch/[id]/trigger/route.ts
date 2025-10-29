@@ -14,25 +14,35 @@ interface FlightSearchResult {
 // Search flights using the specified provider
 async function searchFlightsByProvider(
     provider: "amadeus" | "skyscanner",
-    searchParams: any
+    searchParams: any,
+    bestFlight?: NormalFlight
 ): Promise<FlightSearchResult> {
     switch (provider) {
         case 'amadeus':
             const flights = await searchFlights(searchParams);
+            // Generate airline-specific booking link if we have flight data
+            const sourceLink = bestFlight
+                ? generateAirlineBookingLink(bestFlight, searchParams)
+                : generateGoogleFlightsUrl(searchParams);
+
             return {
                 flights,
                 provider: 'amadeus',
-                sourceLink: generateAmadeusBookingLink(searchParams)
+                sourceLink
             };
 
         case 'skyscanner':
             // TODO: Implement Skyscanner API integration
             console.log('🚧 Skyscanner provider not yet implemented, falling back to Amadeus');
             const fallbackFlights = await searchFlights(searchParams);
+            const fallbackSourceLink = bestFlight
+                ? generateAirlineBookingLink(bestFlight, searchParams)
+                : generateGoogleFlightsUrl(searchParams);
+
             return {
                 flights: fallbackFlights,
                 provider: 'amadeus', // Record actual provider used
-                sourceLink: generateAmadeusBookingLink(searchParams)
+                sourceLink: fallbackSourceLink
             };
 
         default:
@@ -40,19 +50,205 @@ async function searchFlightsByProvider(
     }
 }
 
-// Generate booking link for Amadeus (redirect to airline website)
-function generateAmadeusBookingLink(params: any): string {
-    // For now, generate a generic search URL - when we have specific flight data,
-    // we can redirect to the specific airline's booking page
+// Generate airline-specific booking link based on flight data
+function generateAirlineBookingLink(flight: NormalFlight, searchParams: any): string {
+    const carrierCode = flight.carrier?.toUpperCase();
+
+    switch (carrierCode) {
+        case 'NK': // Spirit Airlines
+            return generateSpiritBookingUrl(searchParams);
+        case 'F9': // Frontier Airlines
+            return generateFrontierBookingUrl(searchParams);
+        case 'AA': // American Airlines
+            return generateAmericanBookingUrl(searchParams);
+        case 'UA': // United Airlines
+            return generateUnitedBookingUrl(searchParams);
+        case 'DL': // Delta Airlines
+            return generateDeltaBookingUrl(searchParams);
+        case 'WN': // Southwest Airlines
+            return generateSouthwestBookingUrl(searchParams);
+        case 'B6': // JetBlue Airways
+            return generateJetBlueBookingUrl(searchParams);
+        case 'AS': // Alaska Airlines
+            return generateAlaskaBookingUrl(searchParams);
+        case 'TK': // Turkish Airlines
+            return generateTurkishBookingUrl(searchParams);
+        default:
+            // Fallback to improved Google Flights URL
+            return generateGoogleFlightsUrl(searchParams);
+    }
+}
+
+// Spirit Airlines booking URL
+function generateSpiritBookingUrl(params: any): string {
     const searchParams = new URLSearchParams({
-        origin: params.origin,
-        destination: params.destination,
-        departure: params.departDate,
-        ...(params.returnDate && { return: params.returnDate }),
-        adults: params.adults.toString(),
+        OrigCity: params.origin,
+        DestCity: params.destination,
+        DeptDate: params.departDate,
+        Adults: params.adults?.toString() || '1',
     });
 
-    // Could redirect to Google Flights, Expedia, or the specific airline
+    if (params.returnDate) {
+        searchParams.set('RetDate', params.returnDate);
+    }
+
+    return `https://www.spirit.com/BookFlight?${searchParams.toString()}`;
+}
+
+// Frontier Airlines booking URL
+function generateFrontierBookingUrl(params: any): string {
+    const searchParams = new URLSearchParams({
+        departureCity: params.origin,
+        arrivalCity: params.destination,
+        departureDate: params.departDate,
+        adults: params.adults?.toString() || '1',
+    });
+
+    if (params.returnDate) {
+        searchParams.set('returnDate', params.returnDate);
+    }
+
+    return `https://www.flyfrontier.com/flight/select?${searchParams.toString()}`;
+}
+
+// American Airlines booking URL
+function generateAmericanBookingUrl(params: any): string {
+    const searchParams = new URLSearchParams({
+        from: params.origin,
+        to: params.destination,
+        departDate: params.departDate,
+        passengers: params.adults?.toString() || '1',
+        cabin: 'economy',
+    });
+
+    if (params.returnDate) {
+        searchParams.set('returnDate', params.returnDate);
+    }
+
+    return `https://www.aa.com/booking/search?${searchParams.toString()}`;
+}
+
+// United Airlines booking URL
+function generateUnitedBookingUrl(params: any): string {
+    const searchParams = new URLSearchParams({
+        f: params.origin,
+        t: params.destination,
+        d: params.departDate,
+        px: params.adults?.toString() || '1',
+        cm: 'econ',
+    });
+
+    if (params.returnDate) {
+        searchParams.set('r', params.returnDate);
+    }
+
+    return `https://www.united.com/en/us/fsr/choose-flights?${searchParams.toString()}`;
+}
+
+// Delta Airlines booking URL
+function generateDeltaBookingUrl(params: any): string {
+    const searchParams = new URLSearchParams({
+        originAirportCode: params.origin,
+        destinationAirportCode: params.destination,
+        departureDate: params.departDate,
+        passengerCount: params.adults?.toString() || '1',
+        serviceClass: 'COACH',
+    });
+
+    if (params.returnDate) {
+        searchParams.set('returnDate', params.returnDate);
+    }
+
+    return `https://www.delta.com/shop/ow/search?${searchParams.toString()}`;
+}
+
+// Southwest Airlines booking URL
+function generateSouthwestBookingUrl(params: any): string {
+    const searchParams = new URLSearchParams({
+        originAirport: params.origin,
+        destinationAirport: params.destination,
+        departureDate: params.departDate,
+        adultPassengersCount: params.adults?.toString() || '1',
+    });
+
+    if (params.returnDate) {
+        searchParams.set('returnDate', params.returnDate);
+    }
+
+    return `https://www.southwest.com/air/booking/select.html?${searchParams.toString()}`;
+}
+
+// JetBlue Airways booking URL
+function generateJetBlueBookingUrl(params: any): string {
+    const searchParams = new URLSearchParams({
+        from: params.origin,
+        to: params.destination,
+        depart: params.departDate,
+        passengers: params.adults?.toString() || '1',
+    });
+
+    if (params.returnDate) {
+        searchParams.set('return', params.returnDate);
+    }
+
+    return `https://www.jetblue.com/booking/flights?${searchParams.toString()}`;
+}
+
+// Alaska Airlines booking URL
+function generateAlaskaBookingUrl(params: any): string {
+    const searchParams = new URLSearchParams({
+        from: params.origin,
+        to: params.destination,
+        departureDate: params.departDate,
+        numAdults: params.adults?.toString() || '1',
+    });
+
+    if (params.returnDate) {
+        searchParams.set('returnDate', params.returnDate);
+    }
+
+    return `https://www.alaskaair.com/booking/reservation/search?${searchParams.toString()}`;
+}
+
+// Turkish Airlines booking URL - fallback to Google Flights with Turkish Airlines filter
+function generateTurkishBookingUrl(params: any): string {
+    // Turkish Airlines direct booking URLs are currently returning 404 errors
+    // Use Google Flights with Turkish Airlines filter as a more reliable alternative
+    const searchParams = new URLSearchParams({
+        f: '0',
+        gl: 'us',
+        hl: 'en',
+        curr: 'USD',
+        // Build tfs parameter for specific flight search
+        tfs: `f.${params.origin}.${params.destination}.${params.departDate}${params.returnDate ? `*f.${params.destination}.${params.origin}.${params.returnDate}` : ''}`,
+        // Add Turkish Airlines filter
+        airline: 'TK'
+    });
+
+    return `https://www.google.com/travel/flights?${searchParams.toString()}`;
+}
+
+// Improved Google Flights URL (fallback)
+function generateGoogleFlightsUrl(params: any): string {
+    const searchParams = new URLSearchParams();
+
+    // Use the correct Google Flights format
+    searchParams.set('hl', 'en');
+    searchParams.set('gl', 'us');
+    searchParams.set('curr', 'USD');
+
+    // Build the tfs parameter correctly for round-trip or one-way
+    let tfsValue = `f.${params.origin}.${params.destination}.${params.departDate}`;
+    if (params.returnDate) {
+        tfsValue += `*f.${params.destination}.${params.origin}.${params.returnDate}`;
+    }
+    searchParams.set('tfs', tfsValue);
+
+    // Add passenger count if more than 1
+    if (params.adults && params.adults > 1) {
+        searchParams.set('px', params.adults.toString());
+    }
+
     return `https://www.google.com/travel/flights?${searchParams.toString()}`;
 }
 
@@ -67,8 +263,27 @@ function mapCabinToAmadeus(cabin: string): string {
     return mapping[cabin] || 'ECONOMY';
 }
 
-// Generate date combinations within the watch window
-function generateDateCombinations(start: string, end: string, flexDays: number): Array<{ depart: string, return?: string }> {
+// Get airline name from IATA code
+function getAirlineName(iataCode: string): string {
+    const airlines: Record<string, string> = {
+        'AA': 'American Airlines',
+        'UA': 'United Airlines',
+        'DL': 'Delta Air Lines',
+        'WN': 'Southwest Airlines',
+        'B6': 'JetBlue Airways',
+        'AS': 'Alaska Airlines',
+        'F9': 'Frontier Airlines',
+        'NK': 'Spirit Airlines',
+        'TK': 'Turkish Airlines',
+        'SY': 'Sun Country Airlines',
+        'G4': 'Allegiant Air',
+    };
+
+    return airlines[iataCode?.toUpperCase()] || `${iataCode} Airlines`;
+}
+
+// Generate date combinations within the watch window based on trip type preference
+function generateDateCombinations(start: string, end: string, flexDays: number, tripType: "oneway" | "roundtrip"): Array<{ depart: string, return?: string }> {
     const startDate = new Date(start);
     const endDate = new Date(end);
     const combinations: Array<{ depart: string, return?: string }> = [];
@@ -107,45 +322,46 @@ function generateDateCombinations(start: string, end: string, flexDays: number):
         }
     }
 
-    // Generate combinations, limiting to ~10 to keep it reasonable
+    // Generate combinations based on user's trip type preference
     let count = 0;
-    const maxCombinations = 10;
+    const maxCombinations = tripType === "oneway" ? 15 : 10; // Allow more one-way searches since they're simpler
 
     for (const departDate of departDates) {
         if (count >= maxCombinations) break;
 
-        // Try one-way first
-        combinations.push({
-            depart: formatDate(departDate)
-        });
-        count++;
-
-        if (count >= maxCombinations) break;
-
-        // Try round-trip with 7-day stay
-        const returnDate = addDays(departDate, 7);
-        if (returnDate <= addDays(endDate, flexDays)) {
+        if (tripType === "oneway") {
+            // Only generate one-way combinations
             combinations.push({
-                depart: formatDate(departDate),
-                return: formatDate(returnDate)
+                depart: formatDate(departDate)
             });
             count++;
-        }
+        } else {
+            // Only generate round-trip combinations
+            // Try round-trip with 7-day stay
+            const returnDate = addDays(departDate, 7);
+            if (returnDate <= addDays(endDate, flexDays)) {
+                combinations.push({
+                    depart: formatDate(departDate),
+                    return: formatDate(returnDate)
+                });
+                count++;
+            }
 
-        if (count >= maxCombinations) break;
+            if (count >= maxCombinations) break;
 
-        // If flexDays > 0, try +/- 2 days for return
-        if (flexDays > 0) {
-            for (const returnOffset of [5, 9]) { // 7-2 and 7+2 days
-                if (count >= maxCombinations) break;
+            // If flexDays > 0, try +/- 2 days for return
+            if (flexDays > 0) {
+                for (const returnOffset of [5, 9]) { // 7-2 and 7+2 days
+                    if (count >= maxCombinations) break;
 
-                const flexReturnDate = addDays(departDate, returnOffset);
-                if (flexReturnDate <= addDays(endDate, flexDays)) {
-                    combinations.push({
-                        depart: formatDate(departDate),
-                        return: formatDate(flexReturnDate)
-                    });
-                    count++;
+                    const flexReturnDate = addDays(departDate, returnOffset);
+                    if (flexReturnDate <= addDays(endDate, flexDays)) {
+                        combinations.push({
+                            depart: formatDate(departDate),
+                            return: formatDate(flexReturnDate)
+                        });
+                        count++;
+                    }
                 }
             }
         }
@@ -181,9 +397,9 @@ export async function POST(
 
         console.log(`🔍 Triggering price check for watch ${id}: ${watch.origin} → ${watch.destination}`);
 
-        // Generate date combinations
-        const dateCombinations = generateDateCombinations(watch.start, watch.end, watch.flexDays);
-        console.log(`📅 Generated ${dateCombinations.length} date combinations to check`);
+        // Generate date combinations based on user's trip type preference
+        const dateCombinations = generateDateCombinations(watch.start, watch.end, watch.flexDays, watch.tripType);
+        console.log(`📅 Generated ${dateCombinations.length} ${watch.tripType} date combinations to check`);
 
         let bestFlight: NormalFlight | null = null;
         let bestDates: { depart: string, return?: string } | null = null;
@@ -205,6 +421,7 @@ export async function POST(
                     returnDate: dates.return,
                     adults: watch.adults,
                     currency: watch.currency,
+                    cabinClass: watch.cabin, // Include user's cabin class preference
                     max: 20 // Get more results to find best options
                 };
 
@@ -282,11 +499,25 @@ export async function POST(
 
         console.log(`💰 Best flight found: $${bestFlight.total} ${bestFlight.currency} (${bestFlight.carrier}) via ${usedProvider}`);
 
+        // Generate airline-specific booking link for the best flight
+        const bestFlightSearchParams = {
+            origin: watch.origin,
+            destination: watch.destination,
+            departDate: bestDates.depart,
+            returnDate: bestDates.return,
+            adults: watch.adults,
+            currency: watch.currency,
+            cabinClass: watch.cabin
+        };
+        const airlineSpecificLink = generateAirlineBookingLink(bestFlight, bestFlightSearchParams);
+
+        console.log(`🔗 Generated booking link for ${bestFlight.carrier}: ${airlineSpecificLink}`);
+
         // Update watch with best price and provider information
         const updatedWatch = updateWatch(id, {
             lastBestUsd: bestFlight.total,
             lastProvider: usedProvider,
-            lastSourceLink: sourceLink,
+            lastSourceLink: airlineSpecificLink, // Use airline-specific link
             updatedAt: new Date().toISOString()
         });
 
@@ -372,6 +603,8 @@ export async function POST(
 
                     // Prepare email data with segment details from raw flight data
                     const segments = bestFlight.raw?.itineraries?.[0]?.segments || [];
+                    const airlineName = getAirlineName(bestFlight.carrier);
+
                     const emailData = {
                         origin: watch.origin,
                         destination: watch.destination,
@@ -380,13 +613,16 @@ export async function POST(
                         total: bestFlight.total,
                         currency: bestFlight.currency,
                         carrier: bestFlight.carrier,
+                        airlineName: airlineName,
                         stops: {
                             out: bestFlight.stopsOut,
                             back: bestFlight.stopsBack,
                         },
                         deeplinkUrl,
+                        airlineBookingUrl: airlineSpecificLink, // Direct airline booking link
                         targetPrice: watch.targetUsd,
                         segments: segments, // Include segment details for detailed stop information
+                        tripType: watch.tripType, // Include trip type for clarity
                     };
 
                     // Send email
