@@ -45,25 +45,6 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-teal-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-lg flex items-center justify-center">
-                <span className="text-white text-sm">✈️</span>
-              </div>
-              <span className="text-xl font-semibold text-gray-900">Travel Conductor</span>
-            </div>
-            <nav className="flex space-x-8">
-              <a href="#about" className="text-gray-600 hover:text-gray-900">About</a>
-              <a href="#features" className="text-gray-600 hover:text-gray-900">Features</a>
-              <a href="#access" className="text-gray-600 hover:text-gray-900">Request Access</a>
-            </nav>
-          </div>
-        </div>
-      </header>
-
       <main>
         {/* Hero Section */}
         <section className="py-20 lg:py-28">

@@ -52,8 +52,8 @@ export default function GlobalNavigation({ currentPage }: NavigationProps) {
                         <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-lg flex items-center justify-center">
                             <span className="text-white text-xs">✈️</span>
                         </div>
-                        <span className="text-base sm:text-lg font-light text-white tracking-wide hidden xs:block">Travel Conductor</span>
-                        <span className="text-base font-light text-white tracking-wide xs:hidden">TC</span>
+                        <span className="text-base sm:text-lg font-light text-white tracking-wide hidden sm:block">Travel Conductor</span>
+                        <span className="text-base font-light text-white tracking-wide sm:hidden">TC</span>
                     </Link>
 
                     {/* Desktop Navigation Links */}
