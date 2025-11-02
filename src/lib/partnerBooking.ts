@@ -375,8 +375,10 @@ export async function proceedToAirlineBooking(flight: UnifiedFlightResult): Prom
 
         console.log(`🛫 Routing directly to ${PartnerBookingService.getAirlineName(flight.carrier)}: ${partnerUrl}`);
 
-        // Open in new tab to preserve user's search results
-        window.open(partnerUrl, '_blank');
+        // Open in new tab to preserve user's search results (client-side only)
+        if (typeof window !== 'undefined') {
+            window.open(partnerUrl, '_blank');
+        }
 
     } catch (error) {
         console.error('Direct booking error:', error);

@@ -2,6 +2,7 @@ import { priceWatchDB, PriceWatch } from '@/lib/priceWatch';
 import { flightCache } from '@/lib/cache';
 import { getCurrentFrequency, formatFrequencyDescription } from '@/lib/monitoringConfig';
 import { getAirlineName, getAirportName } from './airlineUtils';
+import { createServerOnlyInstance, isServer } from './serverOnly';
 
 /**
  * Price Monitoring Service
@@ -259,11 +260,13 @@ Your Travel Conductor Team
     }
 }
 
-// Export singleton instance
-export const priceMonitor = new PriceMonitoringService();
+// Export singleton instance (server-only)
+export const priceMonitor = createServerOnlyInstance(PriceMonitoringService);
 
-// Auto-start monitoring (in production, use proper cron job)
-if (typeof window === 'undefined') { // Only run on server
+// Manual start function for production use
+export function startPriceMonitoring() {
+    if (!isServer()) return; // Only run on server
+    
     const frequency = getCurrentFrequency();
     const frequencyDesc = formatFrequencyDescription(frequency);
 

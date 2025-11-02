@@ -6,6 +6,7 @@
  */
 
 import { listWatches } from './watchStore';
+import { createServerOnlyInstance, isServer } from './serverOnly';
 
 class AutomaticWatchMonitor {
     private monitoringInterval: NodeJS.Timeout | null = null;
@@ -13,13 +14,13 @@ class AutomaticWatchMonitor {
     private readonly BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
 
     constructor() {
-        // Only run on server side
-        if (typeof window === 'undefined') {
-            this.startMonitoring();
-        }
+        // Constructor only initializes, doesn't auto-start
+        // Use start() method to begin monitoring
     }
 
-    private startMonitoring(): void {
+    public startMonitoring(): void {
+        if (!isServer()) return; // Only run on server
+        
         console.log('🚀 Starting automatic watch monitoring service...');
         console.log(`⏰ Monitoring frequency: every ${this.MONITORING_FREQUENCY / 1000} seconds`);
 
@@ -102,8 +103,8 @@ class AutomaticWatchMonitor {
     }
 }
 
-// Export singleton instance
-export const automaticWatchMonitor = new AutomaticWatchMonitor();
+// Export singleton instance (server-only)
+export const automaticWatchMonitor = createServerOnlyInstance(AutomaticWatchMonitor);
 
 // Handle graceful shutdown
 if (typeof process !== 'undefined') {
