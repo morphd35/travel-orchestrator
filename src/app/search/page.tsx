@@ -713,10 +713,16 @@ function Home() {
         return;
       }
 
-      // Build travel packages from real flight data
-      const packages = flights.map((flight: any, index: number) => {
+      // Build travel packages from real flight data with error handling
+      const packages = flights.filter(flight => flight && flight.price !== undefined).map((flight: any, index: number) => {
         // Use the flight price as returned by the API (already accounts for travelers)
-        const flightPrice = flight.total || 0;
+        // Ensure we have valid flight data
+        if (!flight || typeof flight.price !== 'number') {
+          console.warn('Invalid flight data:', flight);
+          return null;
+        }
+        
+        const flightPrice = flight.price || flight.total || 0;
 
         // Calculate total travelers for display purposes
         const totalTravelers = payload.travelers.adults + payload.travelers.seniors + payload.travelers.children;
@@ -772,7 +778,7 @@ function Home() {
             } : undefined,
           },
         };
-      });
+      }).filter(Boolean); // Remove any null packages
 
       setResults(packages);
 
@@ -1439,18 +1445,18 @@ function Home() {
 
                     {/* Components Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-                      {r.components.flight && (
+                      {r.components?.flight && (
                         <div className="bg-gradient-to-r from-cyan-50 to-teal-50 border border-cyan-200 rounded-lg p-4 col-span-full sm:col-span-3">
                           <div className="flex items-start gap-3">
                             <span className="text-2xl mt-1">✈️</span>
                             <div className="flex-1">
                               <div className="flex items-center justify-between mb-2">
                                 <div>
-                                  <p className="font-bold text-teal-800 text-base">{r.components.flight.carrierName}</p>
-                                  <p className="text-xs text-cyan-600">Flight {r.components.flight.flightNumber} • {r.components.flight.aircraft}</p>
+                                  <p className="font-bold text-teal-800 text-base">{r.components.flight?.carrierName || 'Unknown Airline'}</p>
+                                  <p className="text-xs text-cyan-600">Flight {r.components.flight?.flightNumber || 'N/A'} • {r.components.flight?.aircraft || 'N/A'}</p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-sm font-semibold text-teal-800">{r.components.flight.duration}</p>
+                                  <p className="text-sm font-semibold text-teal-800">{r.components.flight?.duration || 'N/A'}</p>
                                   <p className="text-xs text-cyan-600">
                                     {formatStopsInfo(r.components.flight.stops, r.components.flight.segments)}
                                   </p>
@@ -1466,14 +1472,14 @@ function Home() {
                                   className="text-xs text-blue-600 hover:text-blue-800 underline"
                                   onClick={() => {
                                     // Future: Show detailed flight information modal
-                                    if (r.components.flight) {
+                                    if (r.components?.flight) {
                                       const flight = r.components.flight;
                                       let stopDetails = '';
-                                      if (flight.stops > 0 && flight.segments && flight.segments.length > 1) {
-                                        const stopCities = flight.segments.slice(0, -1).map(seg => seg.arrival?.iataCode).filter(Boolean);
+                                      if (flight.stops > 0 && flight.segments && Array.isArray(flight.segments) && flight.segments.length > 1) {
+                                        const stopCities = flight.segments.slice(0, -1).map(seg => seg?.arrival?.iataCode).filter(Boolean);
                                         stopDetails = stopCities.length > 0 ? `\nStops in: ${stopCities.join(', ')}` : '';
                                       }
-                                      alert(`Flight Details:\n\nAirline: ${flight.carrierName}\nFlight: ${flight.flightNumber}\nAircraft: ${flight.aircraft}\nDeparture: ${flight.departureTime}\nArrival: ${flight.arrivalTime}\nDuration: ${flight.duration}\nStops: ${flight.stops}${stopDetails}`);
+                                      alert(`Flight Details:\n\nAirline: ${flight.carrierName || 'N/A'}\nFlight: ${flight.flightNumber || 'N/A'}\nAircraft: ${flight.aircraft || 'N/A'}\nDeparture: ${flight.departureTime || 'N/A'}\nArrival: ${flight.arrivalTime || 'N/A'}\nDuration: ${flight.duration || 'N/A'}\nStops: ${flight.stops || 0}${stopDetails}`);
                                     }
                                   }}
                                 >
